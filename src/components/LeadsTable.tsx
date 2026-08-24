@@ -1,0 +1,255 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/utils/supabase/client'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
+import Modal from './Modal'
+import RegistrationForm from './RegistrationForm'
+import LeadForm from './LeadForm'
+import AlertDialog from './AlertDialog'
+import { Plus, Trash2, Edit } from 'lucide-react'
+
+type Lead = {
+  id: string
+  attendee_name: string
+  contact_info: string
+  college_name: string | null
+  state: string | null
+  event_preferences: string[] | null
+  payment_status: string | null
+  lead_status: string
+  notes: string | null
+  registered_by: string | null
+  group_id: string | null
+}
+
+export default function LeadsTable({ leads, userId, role }: { leads: Lead[], userId: string, role: string }) {
+  const [data, setData] = useState<Lead[]>(leads)
+  const [convertModalOpen, setConvertModalOpen] = useState(false)
+  const [leadFormModalOpen, setLeadFormModalOpen] = useState(false)
+  const [deleteAlertOpen, setDeleteAlertOpen] = useState(false)
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
+  
+  const supabase = createClient()
+  const router = useRouter()
+  
+  const canManage = role === 'admin' || role === 'senior'
+
+  const handleClaim = async (leadId: string) => {
+    const { error } = await supabase
+      .from('registrations')
+      .update({ registered_by: userId })
+      .eq('id', leadId)
+
+    if (error) {
+      toast.error('Failed to claim lead', { description: error.message })
+    } else {
+      toast.success('Lead claimed successfully!')
+      setData(data.map(l => l.id === leadId ? { ...l, registered_by: userId } : l))
+      router.refresh()
+    }
+  }
+
+  const handleStatusChange = async (leadId: string, status: string) => {
+    const { error } = await supabase
+      .from('registrations')
+      .update({ lead_status: status })
+      .eq('id', leadId)
+
+    if (error) {
+      toast.error('Failed to update status', { description: error.message })
+    } else {
+      toast.success('Status updated!')
+      setData(data.map(l => l.id === leadId ? { ...l, lead_status: status } : l))
+    }
+  }
+
+  const handleNotesChange = async (leadId: string, notes: string) => {
+    const { error } = await supabase
+      .from('registrations')
+      .update({ notes })
+      .eq('id', leadId)
+
+    if (error) {
+      toast.error('Failed to save notes')
+    } else {
+      setData(data.map(l => l.id === leadId ? { ...l, notes } : l))
+    }
+  }
+
+  const handleDeleteLead = async () => {
+    if (!selectedLead) return
+    const { error } = await supabase
+      .from('registrations')
+      .delete()
+      .eq('id', selectedLead.id)
+
+    if (error) {
+      toast.error('Failed to delete lead', { description: error.message })
+    } else {
+      toast.success('Lead deleted successfully')
+      setData(data.filter(l => l.id !== selectedLead.id))
+      router.refresh()
+    }
+  }
+
+  const openConvertModal = (lead: Lead) => {
+    setSelectedLead(lead)
+    setConvertModalOpen(true)
+  }
+
+  const openEditModal = (lead: Lead) => {
+    setSelectedLead(lead)
+    setLeadFormModalOpen(true)
+  }
+
+  const openCreateModal = () => {
+    setSelectedLead(null)
+    setLeadFormModalOpen(true)
+  }
+
+  const openDeleteAlert = (lead: Lead) => {
+    setSelectedLead(lead)
+    setDeleteAlertOpen(true)
+  }
+
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold text-gray-900">Lead Tracking</h2>
+        {canManage && (
+          <Button onClick={openCreateModal} className="flex items-center gap-2">
+            <Plus className="w-4 h-4" /> Create Lead
+          </Button>
+        )}
+      </div>
+      
+      <div className="rounded-md border overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Attendee Name</TableHead>
+              <TableHead>Contact Info</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-[300px]">Notes</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.map((lead) => (
+              <TableRow key={lead.id}>
+                <TableCell className="font-medium">{lead.attendee_name}</TableCell>
+                <TableCell>{lead.contact_info}</TableCell>
+                <TableCell>
+                  <Select 
+                    value={lead.lead_status} 
+                    onValueChange={(val) => handleStatusChange(lead.id, val)}
+                    disabled={lead.registered_by !== userId && !canManage}
+                  >
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="uncontacted">Uncontacted</SelectItem>
+                      <SelectItem value="follow_up">Follow Up</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <textarea 
+                    className="w-full text-sm p-2 border rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    defaultValue={lead.notes || ''}
+                    placeholder="Add notes..."
+                    rows={2}
+                    disabled={lead.registered_by !== userId && !canManage}
+                    onBlur={(e) => handleNotesChange(lead.id, e.target.value)}
+                  />
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end items-center gap-2">
+                    {lead.registered_by === userId ? (
+                      <Button variant="default" size="sm" onClick={() => openConvertModal(lead)}>
+                        Convert
+                      </Button>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={() => handleClaim(lead.id)}>
+                        Claim
+                      </Button>
+                    )}
+                    
+                    {canManage && (
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-gray-500 hover:text-blue-600"
+                          onClick={() => openEditModal(lead)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-gray-500 hover:text-red-600"
+                          onClick={() => openDeleteAlert(lead)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+            {data.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                  No active leads found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Modal isOpen={convertModalOpen} onClose={() => setConvertModalOpen(false)}>
+        {selectedLead && (
+          <RegistrationForm 
+            userId={userId} 
+            initialData={selectedLead as any} 
+            isConvert={true} 
+            onSuccess={() => {
+              setConvertModalOpen(false)
+              setData(data.filter(l => l.id !== selectedLead.id))
+            }}
+          />
+        )}
+      </Modal>
+      
+      <Modal isOpen={leadFormModalOpen} onClose={() => setLeadFormModalOpen(false)}>
+        <LeadForm 
+          userId={userId} 
+          initialData={selectedLead || undefined} 
+          onSuccess={() => {
+            setLeadFormModalOpen(false)
+          }}
+        />
+      </Modal>
+
+      <AlertDialog 
+        isOpen={deleteAlertOpen} 
+        onClose={() => setDeleteAlertOpen(false)}
+        onConfirm={handleDeleteLead}
+        title="Delete Lead"
+        description="Are you sure? This will permanently delete the lead and cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
+    </div>
+  )
+}
