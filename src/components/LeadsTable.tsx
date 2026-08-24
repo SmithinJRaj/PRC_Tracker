@@ -147,7 +147,7 @@ export default function LeadsTable({ leads, userId, role }: { leads: Lead[], use
                 <TableCell>
                   <Select 
                     value={lead.lead_status} 
-                    onValueChange={(val) => handleStatusChange(lead.id, val)}
+                    onValueChange={(val) => handleStatusChange(lead.id, val || "uncontacted")}
                     disabled={lead.registered_by !== userId && !canManage}
                   >
                     <SelectTrigger className="w-[140px]">

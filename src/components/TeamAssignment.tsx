@@ -70,7 +70,7 @@ export default function TeamAssignment({ juniors, groups, currentRole, seniorGro
                 <TableCell>
                   <Select 
                     value={u.group_id || 'none'} 
-                    onValueChange={(val) => handleGroupChange(u.id, val)}
+                    onValueChange={(val) => handleGroupChange(u.id, val || "none")}
                   >
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Unassigned" />

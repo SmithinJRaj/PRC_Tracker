@@ -43,7 +43,7 @@ export default function LeaderboardView({ data, groups }: { data: LeaderboardEnt
       <TabsContent value="group">
         <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 space-y-4">
           <div className="flex justify-end">
-            <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+            <Select value={selectedGroup} onValueChange={(val) => setSelectedGroup(val || "all")}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Select Group" />
               </SelectTrigger>

@@ -35,7 +35,7 @@ export default function GroupManagement({ initialGroups, seniors }: { initialGro
   const supabase = createClient()
   const router = useRouter()
 
-  const handleHeadChange = async (groupId: string, newHeadId: string) => {
+  const handleHeadChange = async (groupId: string, newHeadId: string | null) => {
     // Optimistic update
     const previousGroups = [...groups]
     setGroups(groups.map(g => g.id === groupId ? { ...g, head_id: newHeadId } : g))
@@ -159,7 +159,7 @@ export default function GroupManagement({ initialGroups, seniors }: { initialGro
                     <TableCell>
                       <Select 
                         value={g.head_id || 'unassigned'} 
-                        onValueChange={(val) => handleHeadChange(g.id, val === 'unassigned' ? null as any : val)}
+                        onValueChange={(val) => handleHeadChange(g.id, (val || 'unassigned') === 'unassigned' ? null : (val as string))}
                       >
                         <SelectTrigger className="w-[200px]">
                           <SelectValue placeholder="Unassigned" />

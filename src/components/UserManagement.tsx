@@ -59,7 +59,7 @@ export default function UserManagement({ initialUsers }: { initialUsers: User[] 
                 <TableCell>
                   <Select 
                     defaultValue={u.role} 
-                    onValueChange={(val) => handleRoleChange(u.id, val)}
+                    onValueChange={(val) => handleRoleChange(u.id, val || "junior")}
                   >
                     <SelectTrigger className="w-[120px]">
                       <SelectValue />
