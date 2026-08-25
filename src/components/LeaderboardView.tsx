@@ -84,7 +84,7 @@ export default function LeaderboardView({ data, groups }: { data: LeaderboardEnt
           <div className="flex justify-end">
             <Select value={selectedStateGroup} onValueChange={(val) => setSelectedStateGroup(val || "all")}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Select State" />
+                <SelectValue>{selectedStateGroup === 'all' ? 'All States' : stateGroupOptions.find(g => g.id === selectedStateGroup)?.name || 'Select State'}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All States</SelectItem>
@@ -103,7 +103,7 @@ export default function LeaderboardView({ data, groups }: { data: LeaderboardEnt
           <div className="flex justify-end">
             <Select value={selectedDistrictGroup} onValueChange={(val) => setSelectedDistrictGroup(val || "all")}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Select District" />
+                <SelectValue>{selectedDistrictGroup === 'all' ? 'All Districts' : districtGroups.find(g => g.id === selectedDistrictGroup)?.name || 'Select District'}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Districts</SelectItem>

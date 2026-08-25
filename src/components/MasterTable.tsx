@@ -54,7 +54,8 @@ export default function MasterTable({ initialData, role, currentUserId, regions 
 
   const filteredData = data.filter(r => 
     r.attendee_name.toLowerCase().includes(search.toLowerCase()) ||
-    (r.users?.full_name || '').toLowerCase().includes(search.toLowerCase())
+    (r.users?.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
+    (r.phone || '').replace(/\s/g, '').includes(search.replace(/\s/g, ''))
   )
 
   const totalRegistrations = data.filter(d => d.lead_status === 'registered').length

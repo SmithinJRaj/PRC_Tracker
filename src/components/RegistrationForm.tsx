@@ -43,7 +43,24 @@ export default function RegistrationForm({ userId, userGroupId, initialData, isC
   const [loading, setLoading] = useState(false)
   const [regionId, setRegionId] = useState<string>(initialData?.region_id || '')
 
+  const phoneRegex = /^(\+\d{1,4})\s?(.*)$/
+  let defaultCountryCode = '+91'
+  let defaultPhoneNumber = ''
+  
+  if (initialData?.phone) {
+    const match = initialData.phone.match(phoneRegex)
+    if (match) {
+      defaultCountryCode = match[1]
+      defaultPhoneNumber = match[2]
+    } else {
+      defaultPhoneNumber = initialData.phone
+    }
+  }
+
+  const [countryCode, setCountryCode] = useState(defaultCountryCode)
+
   const isEdit = !!initialData?.id && !isConvert
+  const disableCreation = !isEdit && !isConvert && !userGroupId
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -54,9 +71,11 @@ export default function RegistrationForm({ userId, userGroupId, initialData, isC
     }
 
     const formData = new FormData(e.currentTarget)
-    const phone = formData.get('phone') as string
+    const phoneInput = formData.get('phone') as string
     const attendee_email = formData.get('attendee_email') as string
     const tathva_id = formData.get('tathva_id') as string
+    
+    const phone = phoneInput ? `${countryCode}${phoneInput}`.replace(/\s/g, '') : null
 
     if (!phone && !attendee_email) {
       toast.error('Please provide at least a phone number or an email.')
@@ -73,7 +92,7 @@ export default function RegistrationForm({ userId, userGroupId, initialData, isC
     const data = {
       attendee_name: formData.get('attendee_name') as string,
       college_name: formData.get('college_name') as string,
-      phone: phone || null,
+      phone,
       attendee_email: attendee_email || null,
       event: formData.get('event') as string,
       tathva_id: tathva_id || null,
@@ -127,7 +146,20 @@ export default function RegistrationForm({ userId, userGroupId, initialData, isC
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" name="phone" defaultValue={initialData?.phone || ''} placeholder="+91 9876543210" />
+              <div className="flex gap-2">
+                <Select value={countryCode} onValueChange={(val) => setCountryCode(val || '+91')}>
+                  <SelectTrigger className="w-[90px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="+91">+91</SelectItem>
+                    <SelectItem value="+1">+1</SelectItem>
+                    <SelectItem value="+44">+44</SelectItem>
+                    <SelectItem value="+971">+971</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input id="phone" name="phone" className="flex-1" defaultValue={defaultPhoneNumber} placeholder="98765 43210" />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="attendee_email">Email</Label>
@@ -168,9 +200,14 @@ export default function RegistrationForm({ userId, userGroupId, initialData, isC
             </div>
           </div>
 
-          <Button type="submit" className="w-full mt-4" disabled={loading}>
+          <Button type="submit" className="w-full mt-4" disabled={loading || disableCreation}>
             {loading ? 'Submitting...' : (isConvert ? 'Convert Lead' : (isEdit ? 'Save Changes' : 'Add Registration'))}
           </Button>
+          {disableCreation && (
+            <p className="text-sm text-red-500 mt-2 text-center">
+              You must assign yourself to a Group in the Management tab before creating entries.
+            </p>
+          )}
         </form>
       </CardContent>
     </Card>

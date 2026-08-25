@@ -71,7 +71,7 @@ export default function TeamAssignment({ members, groups, currentRole, seniorGro
                       onValueChange={(val) => handleGroupChange(u.id, val === 'none' ? null : val)}
                     >
                       <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Unassigned" />
+                        <SelectValue>{u.group_id ? groups.find(g => g.id === u.group_id)?.name || 'Unknown' : 'Unassigned'}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">Unassigned</SelectItem>

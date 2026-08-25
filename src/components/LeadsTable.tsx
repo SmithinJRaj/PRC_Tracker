@@ -7,6 +7,7 @@ import { revalidateDashboard } from '@/app/actions'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import Modal from './Modal'
 import RegistrationForm from './RegistrationForm'
@@ -39,6 +40,7 @@ type Lead = {
 
 export default function LeadsTable({ leads, userId, userGroupId, role, regions }: { leads: Lead[], userId: string, userGroupId: string | null, role: string, regions: Region[] }) {
   const [data, setData] = useState<Lead[]>(leads)
+  const [search, setSearch] = useState('')
   const [convertModalOpen, setConvertModalOpen] = useState(false)
   const [leadFormModalOpen, setLeadFormModalOpen] = useState(false)
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false)
@@ -48,6 +50,12 @@ export default function LeadsTable({ leads, userId, userGroupId, role, regions }
   const router = useRouter()
   
   const canManage = role === 'admin' || role === 'senior'
+
+  const filteredData = data.filter(l => 
+    l.attendee_name.toLowerCase().includes(search.toLowerCase()) ||
+    (l.phone || '').replace(/\s/g, '').includes(search.replace(/\s/g, '')) ||
+    (l.attendee_email || '').toLowerCase().includes(search.toLowerCase())
+  )
 
   const handleClaim = async (leadId: string) => {
     const { error } = await supabase
@@ -133,13 +141,28 @@ export default function LeadsTable({ leads, userId, userGroupId, role, regions }
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
         <h2 className="text-xl font-semibold text-gray-900">Lead Tracking</h2>
-        {canManage && (
-          <Button onClick={openCreateModal} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" /> Create Lead
-          </Button>
-        )}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Input 
+            placeholder="Search leads..." 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="max-w-xs"
+          />
+          {canManage && (
+            <div className="relative group">
+              <Button onClick={openCreateModal} className="flex items-center gap-2" disabled={!userGroupId}>
+                <Plus className="w-4 h-4" /> Create Lead
+              </Button>
+              {!userGroupId && (
+                <div className="absolute top-full mt-2 right-0 hidden group-hover:block w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-10 text-center">
+                  You must assign yourself to a Group in the Management tab before creating entries.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
       
       <div className="rounded-md border overflow-x-auto">
@@ -155,7 +178,7 @@ export default function LeadsTable({ leads, userId, userGroupId, role, regions }
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((lead) => (
+            {filteredData.map((lead) => (
               <TableRow key={lead.id}>
                 <TableCell className="font-medium">{lead.attendee_name}</TableCell>
                 <TableCell>
@@ -228,7 +251,7 @@ export default function LeadsTable({ leads, userId, userGroupId, role, regions }
                 </TableCell>
               </TableRow>
             ))}
-            {data.length === 0 && (
+            {filteredData.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                   No active leads found.
