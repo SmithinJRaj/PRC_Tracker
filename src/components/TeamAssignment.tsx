@@ -48,7 +48,7 @@ export default function TeamAssignment({ members, groups, currentRole, seniorGro
   if (currentRole === 'admin') {
     return (
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mt-8">
-        <h2 className="text-xl font-semibold mb-4 text-gray-900">Assign Juniors to Groups</h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-900">Assign Team Members to Groups</h2>
         <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>

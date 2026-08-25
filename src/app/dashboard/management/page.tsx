@@ -45,7 +45,7 @@ export default async function ManagementDashboard() {
     .order('name', { ascending: true })
 
   const seniors = allUsers?.filter(u => u.role === 'senior') || []
-  const members = allUsers?.filter(u => u.role === 'junior' || u.role === 'senior') || []
+  const members = allUsers || []
   
   // Find which group the current senior belongs to
   const seniorGroupId = profile.group_id
