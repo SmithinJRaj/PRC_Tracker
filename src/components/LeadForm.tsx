@@ -113,7 +113,7 @@ export default function LeadForm({ initialData, onSuccess, userId, regions }: Pr
           </div>
           <div className="space-y-2">
             <Label>Region</Label>
-            <Select value={regionId} onValueChange={setRegionId}>
+            <Select value={regionId} onValueChange={(val) => setRegionId(val || '')}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a region..." />
               </SelectTrigger>
