@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import UserManagement from '@/components/UserManagement'
 import GroupManagement from '@/components/GroupManagement'
+import RegionManagement from '@/components/RegionManagement'
 import TeamAssignment from '@/components/TeamAssignment'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
@@ -36,6 +37,12 @@ export default async function ManagementDashboard() {
     .from('groups')
     .select('*')
     .order('name', { ascending: true })
+    
+  // Fetch all regions
+  const { data: allRegions } = await supabase
+    .from('regions')
+    .select('*')
+    .order('name', { ascending: true })
 
   const seniors = allUsers?.filter(u => u.role === 'senior') || []
   const juniors = allUsers?.filter(u => u.role === 'junior') || []
@@ -56,6 +63,7 @@ export default async function ManagementDashboard() {
         <TabsList>
           {isAdmin && <TabsTrigger value="users">User Roles</TabsTrigger>}
           {isAdmin && <TabsTrigger value="groups">Groups</TabsTrigger>}
+          {isAdmin && <TabsTrigger value="regions">Regions</TabsTrigger>}
           <TabsTrigger value="teams">Team Assignment</TabsTrigger>
         </TabsList>
         
@@ -66,6 +74,9 @@ export default async function ManagementDashboard() {
             </TabsContent>
             <TabsContent value="groups">
               <GroupManagement initialGroups={allGroups || []} seniors={seniors} />
+            </TabsContent>
+            <TabsContent value="regions">
+              <RegionManagement initialRegions={allRegions || []} />
             </TabsContent>
           </>
         )}

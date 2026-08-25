@@ -13,21 +13,29 @@ import LeadForm from './LeadForm'
 import AlertDialog from './AlertDialog'
 import { Plus, Trash2, Edit } from 'lucide-react'
 
+type Region = {
+  id: string
+  name: string
+}
+
 type Lead = {
   id: string
   attendee_name: string
   contact_info: string
   college_name: string | null
-  state: string | null
-  event_preferences: string[] | null
-  payment_status: string | null
+  region_id: string | null
+  event: string | null
+  tathva_id: string | null
   lead_status: string
   notes: string | null
   registered_by: string | null
   group_id: string | null
+  regions: {
+    name: string
+  } | null
 }
 
-export default function LeadsTable({ leads, userId, role }: { leads: Lead[], userId: string, role: string }) {
+export default function LeadsTable({ leads, userId, role, regions }: { leads: Lead[], userId: string, role: string, regions: Region[] }) {
   const [data, setData] = useState<Lead[]>(leads)
   const [convertModalOpen, setConvertModalOpen] = useState(false)
   const [leadFormModalOpen, setLeadFormModalOpen] = useState(false)
@@ -134,6 +142,7 @@ export default function LeadsTable({ leads, userId, role }: { leads: Lead[], use
             <TableRow>
               <TableHead>Attendee Name</TableHead>
               <TableHead>Contact Info</TableHead>
+              <TableHead>Region</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-[300px]">Notes</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -144,6 +153,7 @@ export default function LeadsTable({ leads, userId, role }: { leads: Lead[], use
               <TableRow key={lead.id}>
                 <TableCell className="font-medium">{lead.attendee_name}</TableCell>
                 <TableCell>{lead.contact_info}</TableCell>
+                <TableCell>{lead.regions?.name || 'Unknown'}</TableCell>
                 <TableCell>
                   <Select 
                     value={lead.lead_status} 
@@ -208,7 +218,7 @@ export default function LeadsTable({ leads, userId, role }: { leads: Lead[], use
             ))}
             {data.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                   No active leads found.
                 </TableCell>
               </TableRow>
@@ -227,6 +237,7 @@ export default function LeadsTable({ leads, userId, role }: { leads: Lead[], use
               setConvertModalOpen(false)
               setData(data.filter(l => l.id !== selectedLead.id))
             }}
+            regions={regions}
           />
         )}
       </Modal>
@@ -238,6 +249,7 @@ export default function LeadsTable({ leads, userId, role }: { leads: Lead[], use
           onSuccess={() => {
             setLeadFormModalOpen(false)
           }}
+          regions={regions}
         />
       </Modal>
 

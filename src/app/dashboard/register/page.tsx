@@ -11,10 +11,19 @@ export default async function JuniorDashboard() {
     redirect('/login')
   }
 
-  // Fetch only their own registrations
+  // Fetch regions for dropdowns
+  const { data: regions } = await supabase
+    .from('regions')
+    .select('id, name')
+    .order('name', { ascending: true })
+
+  // Fetch only their own registrations with region info
   const { data: registrations } = await supabase
     .from('registrations')
-    .select('*')
+    .select(`
+      *,
+      regions:region_id (name)
+    `)
     .eq('registered_by', user.id)
     .order('created_at', { ascending: false })
 
@@ -25,9 +34,9 @@ export default async function JuniorDashboard() {
         <p className="mt-2 text-gray-600">Log new registrations and track your progress.</p>
       </div>
 
-      <RegistrationForm userId={user.id} />
+      <RegistrationForm userId={user.id} regions={regions || []} />
 
-      <JuniorRegistrations registrations={registrations || []} userId={user.id} />
+      <JuniorRegistrations registrations={registrations || []} userId={user.id} regions={regions || []} />
     </div>
   )
 }

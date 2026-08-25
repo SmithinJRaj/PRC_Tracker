@@ -10,14 +10,19 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 
+type Region = {
+  id: string
+  name: string
+}
+
 type Registration = {
   id?: string
   attendee_name: string
   college_name: string | null
-  state: string | null
   contact_info: string
-  event_preferences: string[] | null
-  payment_status: string | null
+  event: string | null
+  tathva_id: string | null
+  region_id: string | null
   lead_status: string
 }
 
@@ -26,27 +31,35 @@ type Props = {
   initialData?: Registration
   isConvert?: boolean
   onSuccess?: () => void
+  regions: Region[]
 }
 
-export default function RegistrationForm({ userId, initialData, isConvert, onSuccess }: Props) {
+export default function RegistrationForm({ userId, initialData, isConvert, onSuccess, regions }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
+  const [regionId, setRegionId] = useState<string>(initialData?.region_id || '')
 
   const isEdit = !!initialData?.id && !isConvert
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    
+    if (!regionId) {
+      toast.error('Please select a region.')
+      return
+    }
+
     setLoading(true)
 
     const formData = new FormData(e.currentTarget)
     const data = {
       attendee_name: formData.get('attendee_name') as string,
       college_name: formData.get('college_name') as string,
-      state: formData.get('state') as string,
       contact_info: formData.get('contact_info') as string,
-      event_preferences: [formData.get('event_preferences') as string],
-      payment_status: formData.get('payment_status') as string,
+      event: formData.get('event') as string,
+      tathva_id: formData.get('tathva_id') as string,
+      region_id: regionId,
       registered_by: userId,
       lead_status: 'registered'
     }
@@ -69,6 +82,7 @@ export default function RegistrationForm({ userId, initialData, isConvert, onSuc
       } else {
         toast.success('Registration added successfully!')
         ;(e.target as HTMLFormElement).reset()
+        setRegionId('')
         router.refresh()
         if (onSuccess) onSuccess()
       }
@@ -103,27 +117,30 @@ export default function RegistrationForm({ userId, initialData, isConvert, onSuc
               <Input id="college_name" name="college_name" required defaultValue={initialData?.college_name || ''} placeholder="NIT Calicut" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
-              <Input id="state" name="state" required defaultValue={initialData?.state || ''} placeholder="Kerala" />
+              <Label>Region</Label>
+              <Select value={regionId} onValueChange={setRegionId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a region..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {regions.map((region) => (
+                    <SelectItem key={region.id} value={region.id}>
+                      {region.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="event_preferences">Event Preference</Label>
-              <Input id="event_preferences" name="event_preferences" required defaultValue={initialData?.event_preferences?.[0] || ''} placeholder="Tathva '26" />
+              <Label htmlFor="event">Event Name</Label>
+              <Input id="event" name="event" required defaultValue={initialData?.event || ''} placeholder="Proshow" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="payment_status">Payment Status</Label>
-              <Select name="payment_status" required defaultValue={initialData?.payment_status || "pending"}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="tathva_id">Tathva ID</Label>
+              <Input id="tathva_id" name="tathva_id" defaultValue={initialData?.tathva_id || ''} placeholder="T24-12345" />
             </div>
           </div>
 

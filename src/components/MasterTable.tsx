@@ -12,14 +12,19 @@ import RegistrationForm from './RegistrationForm'
 import AlertDialog from './AlertDialog'
 import { Download, CheckCircle2, Circle, Edit, Trash2 } from 'lucide-react'
 
+type Region = {
+  id: string
+  name: string
+}
+
 type Registration = {
   id: string
   attendee_name: string
   college_name: string | null
-  state: string | null
+  region_id: string | null
   contact_info: string
-  event_preferences: string[] | null
-  payment_status: string | null
+  event: string | null
+  tathva_id: string | null
   lead_status: string
   created_at: string
   verification_status: string
@@ -28,9 +33,12 @@ type Registration = {
   users: {
     full_name: string
   } | null
+  regions: {
+    name: string
+  } | null
 }
 
-export default function MasterTable({ initialData, role, currentUserId }: { initialData: Registration[], role: string, currentUserId: string }) {
+export default function MasterTable({ initialData, role, currentUserId, regions }: { initialData: Registration[], role: string, currentUserId: string, regions: Region[] }) {
   const [data, setData] = useState<Registration[]>(initialData)
   const [search, setSearch] = useState('')
   const [editModalOpen, setEditModalOpen] = useState(false)
@@ -49,7 +57,9 @@ export default function MasterTable({ initialData, role, currentUserId }: { init
 
   const totalRegistrations = data.filter(d => d.lead_status === 'registered').length
   const pendingVerifications = data.filter(d => d.verification_status === 'pending' && d.lead_status === 'registered').length
-  const totalPaid = data.filter(d => d.payment_status === 'paid').length
+  
+  // Analytics Header Fix: Total Events Registered
+  const totalEventsRegistered = data.filter(d => d.event && d.event.trim() !== '').length
 
   const handleVerifyToggle = async (regId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'verified' ? 'pending' : 'verified'
@@ -96,15 +106,17 @@ export default function MasterTable({ initialData, role, currentUserId }: { init
   }
 
   const exportCSV = () => {
-    const headers = ['Attendee Name', 'College', 'Contact Info', 'Registered By', 'Payment Status', 'Verification Status', 'Date']
+    const headers = ['Attendee Name', 'College', 'Region', 'Contact Info', 'Event', 'Tathva ID', 'Registered By', 'Verification Status', 'Date']
     const csvContent = [
       headers.join(','),
       ...filteredData.map(r => [
         `"${r.attendee_name}"`,
         `"${r.college_name || ''}"`,
+        `"${r.regions?.name || ''}"`,
         `"${r.contact_info}"`,
+        `"${r.event || ''}"`,
+        `"${r.tathva_id || ''}"`,
         `"${r.users?.full_name || 'Unknown'}"`,
-        `"${r.payment_status || 'unknown'}"`,
         `"${r.verification_status}"`,
         `"${new Date(r.created_at).toLocaleDateString()}"`
       ].join(','))
@@ -133,8 +145,8 @@ export default function MasterTable({ initialData, role, currentUserId }: { init
           <span className="text-3xl font-bold text-amber-600 mt-2">{pendingVerifications}</span>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-          <span className="text-gray-500 text-sm font-medium">Paid Registrations</span>
-          <span className="text-3xl font-bold text-green-600 mt-2">{totalPaid}</span>
+          <span className="text-gray-500 text-sm font-medium">Total Events Registered</span>
+          <span className="text-3xl font-bold text-blue-600 mt-2">{totalEventsRegistered}</span>
         </div>
       </div>
 
@@ -161,8 +173,9 @@ export default function MasterTable({ initialData, role, currentUserId }: { init
                 <TableHead>Verify</TableHead>
                 <TableHead>Attendee Name</TableHead>
                 <TableHead>College</TableHead>
+                <TableHead>Region</TableHead>
+                <TableHead>Event</TableHead>
                 <TableHead>Registered By</TableHead>
-                <TableHead>Payment</TableHead>
                 <TableHead>Date</TableHead>
                 {canManage && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
@@ -184,14 +197,13 @@ export default function MasterTable({ initialData, role, currentUserId }: { init
                   </TableCell>
                   <TableCell className="font-medium">{reg.attendee_name}</TableCell>
                   <TableCell>{reg.college_name}</TableCell>
-                  <TableCell className="text-gray-500">{reg.users?.full_name || 'Unknown'}</TableCell>
+                  <TableCell>{reg.regions?.name || 'Unknown'}</TableCell>
                   <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      reg.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {reg.payment_status?.toUpperCase() || 'UNKNOWN'}
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                      {reg.event || 'None'}
                     </span>
                   </TableCell>
+                  <TableCell className="text-gray-500">{reg.users?.full_name || 'Unknown'}</TableCell>
                   <TableCell>{new Date(reg.created_at).toLocaleDateString()}</TableCell>
                   {canManage && (
                     <TableCell className="text-right">
@@ -221,7 +233,7 @@ export default function MasterTable({ initialData, role, currentUserId }: { init
               ))}
               {filteredData.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={canManage ? 7 : 6} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={canManage ? 8 : 7} className="text-center py-8 text-gray-500">
                     No registrations found.
                   </TableCell>
                 </TableRow>
@@ -235,11 +247,12 @@ export default function MasterTable({ initialData, role, currentUserId }: { init
         {selectedReg && (
           <RegistrationForm 
             userId={selectedReg.registered_by} 
-            initialData={selectedReg} 
+            initialData={selectedReg as any} 
             onSuccess={() => {
               setEditModalOpen(false)
               router.refresh()
             }}
+            regions={regions}
           />
         )}
       </Modal>

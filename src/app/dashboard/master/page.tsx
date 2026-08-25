@@ -20,12 +20,19 @@ export default async function MasterDashboard() {
     redirect('/dashboard/register')
   }
 
+  // Fetch regions for dropdowns
+  const { data: regions } = await supabase
+    .from('regions')
+    .select('id, name')
+    .order('name', { ascending: true })
+
   // Build query
   let query = supabase
     .from('registrations')
     .select(`
       *,
-      users:registered_by (full_name, group_id)
+      users:registered_by (full_name, group_id),
+      regions:region_id (name)
     `)
     .eq('lead_status', 'registered')
     .order('created_at', { ascending: false })
@@ -36,7 +43,8 @@ export default async function MasterDashboard() {
       .from('registrations')
       .select(`
         *,
-        users!inner (full_name, group_id)
+        users!inner (full_name, group_id),
+        regions:region_id (name)
       `)
       .eq('lead_status', 'registered')
       .eq('users.group_id', profile.group_id)
@@ -56,6 +64,7 @@ export default async function MasterDashboard() {
         initialData={registrations || []} 
         role={profile.role} 
         currentUserId={user.id} 
+        regions={regions || []}
       />
     </div>
   )

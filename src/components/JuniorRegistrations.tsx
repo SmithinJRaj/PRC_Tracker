@@ -6,21 +6,29 @@ import { Button } from '@/components/ui/button'
 import Modal from './Modal'
 import RegistrationForm from './RegistrationForm'
 
+type Region = {
+  id: string
+  name: string
+}
+
 type Registration = {
   id: string
   attendee_name: string
   college_name: string | null
-  state: string | null
   contact_info: string
-  event_preferences: string[] | null
-  payment_status: string | null
+  event: string | null
+  tathva_id: string | null
+  region_id: string | null
   lead_status: string
   created_at: string
   verification_status: string
   can_junior_edit: boolean
+  regions: {
+    name: string
+  } | null
 }
 
-export default function JuniorRegistrations({ registrations, userId }: { registrations: Registration[], userId: string }) {
+export default function JuniorRegistrations({ registrations, userId, regions }: { registrations: Registration[], userId: string, regions: Region[] }) {
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [selectedReg, setSelectedReg] = useState<Registration | null>(null)
 
@@ -40,8 +48,8 @@ export default function JuniorRegistrations({ registrations, userId }: { registr
                 <TableRow>
                   <TableHead>Attendee Name</TableHead>
                   <TableHead>College</TableHead>
-                  <TableHead>Contact Info</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Region</TableHead>
+                  <TableHead>Event</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -53,12 +61,10 @@ export default function JuniorRegistrations({ registrations, userId }: { registr
                     <TableRow key={reg.id}>
                       <TableCell className="font-medium">{reg.attendee_name}</TableCell>
                       <TableCell>{reg.college_name}</TableCell>
-                      <TableCell>{reg.contact_info}</TableCell>
+                      <TableCell>{reg.regions?.name || 'Unknown'}</TableCell>
                       <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          reg.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {reg.payment_status?.toUpperCase() || 'UNKNOWN'}
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                          {reg.event || 'None'}
                         </span>
                       </TableCell>
                       <TableCell>{new Date(reg.created_at).toLocaleDateString()}</TableCell>
@@ -89,6 +95,7 @@ export default function JuniorRegistrations({ registrations, userId }: { registr
             userId={userId} 
             initialData={selectedReg} 
             onSuccess={() => setEditModalOpen(false)}
+            regions={regions}
           />
         )}
       </Modal>

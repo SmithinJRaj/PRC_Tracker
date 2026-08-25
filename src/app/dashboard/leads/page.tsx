@@ -20,37 +20,36 @@ export default async function LeadsPage() {
     redirect('/login')
   }
 
+  // Fetch regions for dropdowns
+  const { data: regions } = await supabase
+    .from('regions')
+    .select('id, name')
+    .order('name', { ascending: true })
+
   // Fetch leads
   let query = supabase
     .from('registrations')
-    .select('*')
+    .select(`
+      *,
+      regions:region_id (name)
+    `)
     .neq('lead_status', 'registered')
     .order('created_at', { ascending: false })
 
   // Apply group filter if not admin
   if (profile.role !== 'admin') {
-    // If the user has no group_id, they can't see any leads (or maybe they see nothing?)
-    // Let's assume if they don't have a group, they can't see leads meant for groups
     if (profile.group_id) {
-      // The user clarified: "assume leads are assigned to groups strictly based on the group_id 
-      // of the user who claims or creates them. If a row has no registered_by, only Admins should see it in the pool until it is claimed."
-      // Actually, wait. The prompt says "Seniors and Juniors should only see leads assigned to their group_id."
-      // BUT then says "If a row has no registered_by, only Admins should see it in the pool until it is claimed."
-      // So if not admin, we only fetch where registered_by IN (select id from users where group_id = profile.group_id)
-      
-      // We can use a subquery or join for this in Supabase
-      // Actually, since leads belong to users, and users belong to groups.
       query = supabase
         .from('registrations')
         .select(`
           *,
-          users!inner ( group_id )
+          users!inner ( group_id ),
+          regions:region_id (name)
         `)
         .neq('lead_status', 'registered')
         .eq('users.group_id', profile.group_id)
         .order('created_at', { ascending: false })
     } else {
-      // No group assigned, fetch nothing for non-admins
       query = supabase.from('registrations').select('*').eq('id', '00000000-0000-0000-0000-000000000000') // impossible condition
     }
   }
@@ -68,7 +67,7 @@ export default async function LeadsPage() {
         <p className="mt-2 text-gray-600">Track and convert prospective attendees.</p>
       </div>
 
-      <LeadsTable leads={leads || []} userId={user.id} role={profile.role} />
+      <LeadsTable leads={leads || []} userId={user.id} role={profile.role} regions={regions || []} />
     </div>
   )
 }

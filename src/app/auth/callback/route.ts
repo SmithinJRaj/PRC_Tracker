@@ -26,9 +26,7 @@ export async function GET(request: Request) {
         if (!profile) {
           // New user, determine role based on email
           let role = 'junior'
-          if (email.includes('_b24')) {
-            role = 'admin'
-          } else if (email.includes('_b25')) {
+          if (email.includes('_b24') || email.includes('_b25')) {
             role = 'senior'
           } else if (email.includes('_b26')) {
             role = 'junior'
