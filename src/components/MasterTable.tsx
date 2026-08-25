@@ -10,7 +10,7 @@ import { toast } from 'sonner'
 import Modal from './Modal'
 import RegistrationForm from './RegistrationForm'
 import AlertDialog from './AlertDialog'
-import { Download, CheckCircle2, Circle, Edit, Trash2 } from 'lucide-react'
+import { Download, CheckCircle2, Circle, Edit, Trash2, Mail, Phone } from 'lucide-react'
 
 type Region = {
   id: string
@@ -22,7 +22,8 @@ type Registration = {
   attendee_name: string
   college_name: string | null
   region_id: string | null
-  contact_info: string
+  phone: string | null
+  attendee_email: string | null
   event: string | null
   tathva_id: string | null
   lead_status: string
@@ -106,14 +107,15 @@ export default function MasterTable({ initialData, role, currentUserId, regions 
   }
 
   const exportCSV = () => {
-    const headers = ['Attendee Name', 'College', 'Region', 'Contact Info', 'Event', 'Tathva ID', 'Registered By', 'Verification Status', 'Date']
+    const headers = ['Attendee Name', 'College', 'Region', 'Phone', 'Email', 'Event', 'Tathva ID', 'Registered By', 'Verification Status', 'Date']
     const csvContent = [
       headers.join(','),
       ...filteredData.map(r => [
         `"${r.attendee_name}"`,
         `"${r.college_name || ''}"`,
         `"${r.regions?.name || ''}"`,
-        `"${r.contact_info}"`,
+        `"${r.phone || ''}"`,
+        `"${r.attendee_email || ''}"`,
         `"${r.event || ''}"`,
         `"${r.tathva_id || ''}"`,
         `"${r.users?.full_name || 'Unknown'}"`,
@@ -172,6 +174,7 @@ export default function MasterTable({ initialData, role, currentUserId, regions 
               <TableRow>
                 <TableHead>Verify</TableHead>
                 <TableHead>Attendee Name</TableHead>
+                <TableHead>Contact</TableHead>
                 <TableHead>College</TableHead>
                 <TableHead>Region</TableHead>
                 <TableHead>Event</TableHead>
@@ -196,6 +199,13 @@ export default function MasterTable({ initialData, role, currentUserId, regions 
                     </button>
                   </TableCell>
                   <TableCell className="font-medium">{reg.attendee_name}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col space-y-1 text-sm text-gray-600">
+                      {reg.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3 text-gray-400" />{reg.phone}</span>}
+                      {reg.attendee_email && <span className="flex items-center gap-1"><Mail className="w-3 h-3 text-gray-400" />{reg.attendee_email}</span>}
+                      {!reg.phone && !reg.attendee_email && <span className="text-gray-400 italic">None</span>}
+                    </div>
+                  </TableCell>
                   <TableCell>{reg.college_name}</TableCell>
                   <TableCell>{reg.regions?.name || 'Unknown'}</TableCell>
                   <TableCell>

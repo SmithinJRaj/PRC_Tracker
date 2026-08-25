@@ -16,55 +16,95 @@ type LeaderboardEntry = {
 type Group = {
   id: string
   name: string
+  type: string
 }
 
 export default function LeaderboardView({ data, groups }: { data: LeaderboardEntry[], groups: Group[] }) {
-  const [selectedGroup, setSelectedGroup] = useState<string>('all')
+  const [selectedStateGroup, setSelectedStateGroup] = useState<string>('all')
+  const [selectedDistrictGroup, setSelectedDistrictGroup] = useState<string>('all')
 
-  const groupData = selectedGroup === 'all' 
-    ? data 
-    : data.filter(d => d.group_id === selectedGroup)
+  const stateGroups = groups.filter(g => g.type === 'state')
+  const districtGroups = groups.filter(g => g.type === 'district')
+
+  // Enrich data with group_type
+  const enrichedData = data.map(entry => {
+    const group = groups.find(g => g.id === entry.group_id)
+    return {
+      ...entry,
+      group_type: group?.type || null
+    }
+  })
+
+  const stateData = enrichedData.filter(d => d.group_type === 'state')
+  const filteredStateData = selectedStateGroup === 'all' 
+    ? stateData 
+    : stateData.filter(d => d.group_id === selectedStateGroup)
+
+  const districtData = enrichedData.filter(d => d.group_type === 'district')
+  const filteredDistrictData = selectedDistrictGroup === 'all' 
+    ? districtData 
+    : districtData.filter(d => d.group_id === selectedDistrictGroup)
 
   return (
     <Tabs defaultValue="global" className="w-full max-w-4xl mx-auto">
       <div className="flex justify-center mb-6">
-        <TabsList>
-          <TabsTrigger value="global">Global Leaderboard</TabsTrigger>
-          <TabsTrigger value="group">Group Leaderboard</TabsTrigger>
+        <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsTrigger value="global">All India</TabsTrigger>
+          <TabsTrigger value="state">State-wise</TabsTrigger>
+          <TabsTrigger value="district">District-wise</TabsTrigger>
         </TabsList>
       </div>
 
       <TabsContent value="global">
         <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
-          <LeaderboardTable data={data} showGroupBadge={true} />
+          <LeaderboardTable data={enrichedData} showGroupBadge={true} />
         </div>
       </TabsContent>
 
-      <TabsContent value="group">
+      <TabsContent value="state">
         <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 space-y-4">
           <div className="flex justify-end">
-            <Select value={selectedGroup} onValueChange={(val) => setSelectedGroup(val || "all")}>
+            <Select value={selectedStateGroup} onValueChange={(val) => setSelectedStateGroup(val || "all")}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Select Group" />
+                <SelectValue placeholder="Select State" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Groups</SelectItem>
-                {groups.map(g => (
+                <SelectItem value="all">All States</SelectItem>
+                {stateGroups.map(g => (
                   <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <LeaderboardTable data={groupData} showGroupBadge={false} />
+          <LeaderboardTable data={filteredStateData} showGroupBadge={selectedStateGroup === 'all'} />
+        </div>
+      </TabsContent>
+
+      <TabsContent value="district">
+        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 space-y-4">
+          <div className="flex justify-end">
+            <Select value={selectedDistrictGroup} onValueChange={(val) => setSelectedDistrictGroup(val || "all")}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select District" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Districts</SelectItem>
+                {districtGroups.map(g => (
+                  <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <LeaderboardTable data={filteredDistrictData} showGroupBadge={selectedDistrictGroup === 'all'} />
         </div>
       </TabsContent>
     </Tabs>
   )
 }
 
-function LeaderboardTable({ data, showGroupBadge }: { data: LeaderboardEntry[], showGroupBadge: boolean }) {
+function LeaderboardTable({ data, showGroupBadge }: { data: (LeaderboardEntry & { group_type: string | null })[], showGroupBadge: boolean }) {
   return (
-    <div className="rounded-xl overflow-hidden border">
+    <div className="rounded-xl overflow-x-auto border">
       <Table>
         <TableHeader className="bg-gray-50">
           <TableRow>
@@ -87,7 +127,9 @@ function LeaderboardTable({ data, showGroupBadge }: { data: LeaderboardEntry[], 
                 {showGroupBadge && (
                   <TableCell>
                     {entry.group_name ? (
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        entry.group_type === 'state' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                      }`}>
                         {entry.group_name}
                       </span>
                     ) : (

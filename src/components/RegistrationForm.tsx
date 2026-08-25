@@ -19,7 +19,8 @@ type Registration = {
   id?: string
   attendee_name: string
   college_name: string | null
-  contact_info: string
+  phone: string | null
+  attendee_email: string | null
   event: string | null
   tathva_id: string | null
   region_id: string | null
@@ -50,18 +51,33 @@ export default function RegistrationForm({ userId, initialData, isConvert, onSuc
       return
     }
 
+    const formData = new FormData(e.currentTarget)
+    const phone = formData.get('phone') as string
+    const attendee_email = formData.get('attendee_email') as string
+    const tathva_id = formData.get('tathva_id') as string
+
+    if (!phone && !attendee_email) {
+      toast.error('Please provide at least a phone number or an email.')
+      return
+    }
+
+    if (isConvert && !tathva_id) {
+      toast.error('Tathva ID is required to convert a lead to a registration.')
+      return
+    }
+
     setLoading(true)
 
-    const formData = new FormData(e.currentTarget)
     const data = {
       attendee_name: formData.get('attendee_name') as string,
       college_name: formData.get('college_name') as string,
-      contact_info: formData.get('contact_info') as string,
+      phone: phone || null,
+      attendee_email: attendee_email || null,
       event: formData.get('event') as string,
-      tathva_id: formData.get('tathva_id') as string,
+      tathva_id: tathva_id || null,
       region_id: regionId,
       registered_by: userId,
-      lead_status: 'registered'
+      lead_status: tathva_id ? 'registered' : (initialData?.lead_status || 'uncontacted')
     }
 
     if (initialData?.id) {
@@ -95,19 +111,24 @@ export default function RegistrationForm({ userId, initialData, isConvert, onSuc
       <CardHeader>
         <CardTitle>{isConvert ? 'Convert Lead to Registration' : (isEdit ? 'Edit Registration' : 'New Registration')}</CardTitle>
         <CardDescription>
-          {isConvert ? 'Fill in missing details to complete the registration.' : 'Enter details for the attendee.'}
+          {isConvert ? 'Fill in missing details to complete the registration. Tathva ID is required.' : 'Enter details for the attendee.'}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="attendee_name">Attendee Name</Label>
+            <Input id="attendee_name" name="attendee_name" required defaultValue={initialData?.attendee_name} placeholder="John Doe" />
+          </div>
+          
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="attendee_name">Attendee Name</Label>
-              <Input id="attendee_name" name="attendee_name" required defaultValue={initialData?.attendee_name} placeholder="John Doe" />
+              <Label htmlFor="phone">Phone</Label>
+              <Input id="phone" name="phone" defaultValue={initialData?.phone || ''} placeholder="+91 9876543210" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="contact_info">Contact Info (Phone/Email)</Label>
-              <Input id="contact_info" name="contact_info" required defaultValue={initialData?.contact_info} placeholder="john@example.com" />
+              <Label htmlFor="attendee_email">Email</Label>
+              <Input id="attendee_email" name="attendee_email" type="email" defaultValue={initialData?.attendee_email || ''} placeholder="john@example.com" />
             </div>
           </div>
           

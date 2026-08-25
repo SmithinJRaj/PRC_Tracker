@@ -15,7 +15,8 @@ type Registration = {
   id: string
   attendee_name: string
   college_name: string | null
-  contact_info: string
+  phone: string | null
+  attendee_email: string | null
   event: string | null
   tathva_id: string | null
   region_id: string | null

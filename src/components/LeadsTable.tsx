@@ -11,7 +11,7 @@ import Modal from './Modal'
 import RegistrationForm from './RegistrationForm'
 import LeadForm from './LeadForm'
 import AlertDialog from './AlertDialog'
-import { Plus, Trash2, Edit } from 'lucide-react'
+import { Plus, Trash2, Edit, Mail, Phone } from 'lucide-react'
 
 type Region = {
   id: string
@@ -21,7 +21,8 @@ type Region = {
 type Lead = {
   id: string
   attendee_name: string
-  contact_info: string
+  phone: string | null
+  attendee_email: string | null
   college_name: string | null
   region_id: string | null
   event: string | null
@@ -141,7 +142,7 @@ export default function LeadsTable({ leads, userId, role, regions }: { leads: Le
           <TableHeader>
             <TableRow>
               <TableHead>Attendee Name</TableHead>
-              <TableHead>Contact Info</TableHead>
+              <TableHead>Contact</TableHead>
               <TableHead>Region</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-[300px]">Notes</TableHead>
@@ -152,7 +153,13 @@ export default function LeadsTable({ leads, userId, role, regions }: { leads: Le
             {data.map((lead) => (
               <TableRow key={lead.id}>
                 <TableCell className="font-medium">{lead.attendee_name}</TableCell>
-                <TableCell>{lead.contact_info}</TableCell>
+                <TableCell>
+                  <div className="flex flex-col space-y-1 text-sm text-gray-600">
+                    {lead.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3 text-gray-400" />{lead.phone}</span>}
+                    {lead.attendee_email && <span className="flex items-center gap-1"><Mail className="w-3 h-3 text-gray-400" />{lead.attendee_email}</span>}
+                    {!lead.phone && !lead.attendee_email && <span className="text-gray-400 italic">None</span>}
+                  </div>
+                </TableCell>
                 <TableCell>{lead.regions?.name || 'Unknown'}</TableCell>
                 <TableCell>
                   <Select 

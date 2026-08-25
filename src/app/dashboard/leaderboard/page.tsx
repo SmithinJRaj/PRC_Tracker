@@ -21,7 +21,7 @@ export default async function LeaderboardPage() {
   // Fetch all groups for the filter dropdown
   const { data: groups } = await supabase
     .from('groups')
-    .select('id, name')
+    .select('id, name, type')
     .order('name')
 
   return (

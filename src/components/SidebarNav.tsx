@@ -2,7 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FormInput, TableProperties, Users, Trophy, LogOut, PhoneCall } from 'lucide-react'
+import { FormInput, TableProperties, Users, Trophy, LogOut, PhoneCall, Menu } from 'lucide-react'
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
 
 type SidebarNavProps = {
   role: string
@@ -11,13 +14,14 @@ type SidebarNavProps = {
 
 export default function SidebarNav({ role, fullName }: SidebarNavProps) {
   const pathname = usePathname()
+  const [open, setOpen] = useState(false)
 
   const navItems = [
     {
       name: 'Log Registration',
       href: '/dashboard/register',
       icon: FormInput,
-      show: true, // Everyone can log
+      show: true,
     },
     {
       name: 'Lead Tracking',
@@ -45,8 +49,8 @@ export default function SidebarNav({ role, fullName }: SidebarNavProps) {
     },
   ]
 
-  return (
-    <div className="w-64 bg-white border-r h-screen flex flex-col fixed left-0 top-0">
+  const NavLinks = () => (
+    <>
       <div className="p-6">
         <h1 className="text-2xl font-bold text-blue-600">PRC Tracker</h1>
         <div className="mt-2 text-sm text-gray-500">
@@ -55,7 +59,7 @@ export default function SidebarNav({ role, fullName }: SidebarNavProps) {
         </div>
       </div>
       
-      <nav className="flex-1 px-4 space-y-2 mt-4">
+      <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto">
         {navItems
           .filter((item) => item.show)
           .map((item) => {
@@ -65,6 +69,7 @@ export default function SidebarNav({ role, fullName }: SidebarNavProps) {
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={() => setOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                   isActive
                     ? 'bg-blue-50 text-blue-700 font-medium'
@@ -89,6 +94,30 @@ export default function SidebarNav({ role, fullName }: SidebarNavProps) {
           </button>
         </form>
       </div>
-    </div>
+    </>
+  )
+
+  return (
+    <>
+      {/* Mobile Top Bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b flex items-center px-4 z-40">
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger className="p-2 mr-2 hover:bg-gray-100 rounded-md">
+            <Menu className="h-6 w-6" />
+            <span className="sr-only">Toggle navigation menu</span>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-64 p-0 flex flex-col">
+            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+            <NavLinks />
+          </SheetContent>
+        </Sheet>
+        <h1 className="text-xl font-bold text-blue-600 ml-2">PRC Tracker</h1>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex w-64 bg-white border-r h-screen flex-col fixed left-0 top-0">
+        <NavLinks />
+      </div>
+    </>
   )
 }
