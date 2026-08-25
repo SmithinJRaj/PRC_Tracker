@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import { revalidateDashboard } from '@/app/actions'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,13 +30,14 @@ type Registration = {
 
 type Props = {
   userId: string
+  userGroupId: string | null
   initialData?: Registration
   isConvert?: boolean
   onSuccess?: () => void
   regions: Region[]
 }
 
-export default function RegistrationForm({ userId, initialData, isConvert, onSuccess, regions }: Props) {
+export default function RegistrationForm({ userId, userGroupId, initialData, isConvert, onSuccess, regions }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
@@ -87,19 +89,20 @@ export default function RegistrationForm({ userId, initialData, isConvert, onSuc
         toast.error('Failed to update', { description: error.message })
       } else {
         toast.success(isConvert ? 'Lead converted to registration!' : 'Registration updated!')
-        router.refresh()
+        await revalidateDashboard()
         if (onSuccess) onSuccess()
       }
     } else {
       // Insert new
-      const { error } = await supabase.from('registrations').insert(data)
+      const insertData = { ...data, group_id: userGroupId }
+      const { error } = await supabase.from('registrations').insert(insertData)
       if (error) {
         toast.error('Failed to register', { description: error.message })
       } else {
         toast.success('Registration added successfully!')
         ;(e.target as HTMLFormElement).reset()
         setRegionId('')
-        router.refresh()
+        await revalidateDashboard()
         if (onSuccess) onSuccess()
       }
     }
@@ -141,7 +144,7 @@ export default function RegistrationForm({ userId, initialData, isConvert, onSuc
               <Label>Region</Label>
               <Select value={regionId} onValueChange={(val) => setRegionId(val || '')}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a region..." />
+                  <SelectValue>{regions.find(r => r.id === regionId)?.name || 'Select a region...'}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {regions.map((region) => (

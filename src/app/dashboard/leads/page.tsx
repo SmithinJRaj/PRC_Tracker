@@ -43,11 +43,10 @@ export default async function LeadsPage() {
         .from('registrations')
         .select(`
           *,
-          users!inner ( group_id ),
           regions:region_id (name)
         `)
         .neq('lead_status', 'registered')
-        .eq('users.group_id', profile.group_id)
+        .eq('group_id', profile.group_id)
         .order('created_at', { ascending: false })
     } else {
       query = supabase.from('registrations').select('*').eq('id', '00000000-0000-0000-0000-000000000000') // impossible condition
@@ -67,7 +66,7 @@ export default async function LeadsPage() {
         <p className="mt-2 text-gray-600">Track and convert prospective attendees.</p>
       </div>
 
-      <LeadsTable leads={leads || []} userId={user.id} role={profile.role} regions={regions || []} />
+      <LeadsTable leads={leads || []} userId={user.id} userGroupId={profile.group_id || null} role={profile.role} regions={regions || []} />
     </div>
   )
 }

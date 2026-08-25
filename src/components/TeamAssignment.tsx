@@ -22,8 +22,8 @@ type Group = {
   name: string
 }
 
-export default function TeamAssignment({ juniors, groups, currentRole, seniorGroupId }: { juniors: User[], groups: Group[], currentRole: string, seniorGroupId?: string }) {
-  const [users, setUsers] = useState<User[]>(juniors)
+export default function TeamAssignment({ members, groups, currentRole, seniorGroupId }: { members: User[], groups: Group[], currentRole: string, seniorGroupId?: string }) {
+  const [users, setUsers] = useState<User[]>(members)
   const supabase = createClient()
   const router = useRouter()
 
@@ -53,7 +53,7 @@ export default function TeamAssignment({ juniors, groups, currentRole, seniorGro
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Junior Name</TableHead>
+                <TableHead>User Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Assigned Group</TableHead>
               </TableRow>
@@ -61,7 +61,9 @@ export default function TeamAssignment({ juniors, groups, currentRole, seniorGro
             <TableBody>
               {users.map((u) => (
                 <TableRow key={u.id}>
-                  <TableCell className="font-medium">{u.full_name}</TableCell>
+                  <TableCell className="font-medium">
+                    {u.full_name} <span className="text-xs text-gray-500 ml-2 capitalize">({u.role})</span>
+                  </TableCell>
                   <TableCell>{u.email}</TableCell>
                   <TableCell>
                     <Select 
@@ -84,7 +86,7 @@ export default function TeamAssignment({ juniors, groups, currentRole, seniorGro
               {users.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={3} className="text-center py-4 text-gray-500">
-                    No juniors found.
+                    No users found.
                   </TableCell>
                 </TableRow>
               )}
@@ -96,8 +98,8 @@ export default function TeamAssignment({ juniors, groups, currentRole, seniorGro
   }
 
   // Senior View
-  const unassignedJuniors = users.filter(u => u.group_id === null)
-  const myTeam = users.filter(u => u.group_id === seniorGroupId)
+  const unassignedJuniors = users.filter(u => u.group_id === null && u.role === 'junior')
+  const myTeam = users.filter(u => u.group_id === seniorGroupId && u.role === 'junior')
 
   return (
     <div className="space-y-8 mt-8">

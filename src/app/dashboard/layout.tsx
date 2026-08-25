@@ -22,7 +22,7 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .single()
 
-  if (profile?.role === 'junior' && !profile?.group_id) {
+  if (['junior', 'senior'].includes(profile?.role) && !profile?.group_id) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
         <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border border-gray-100 text-center">

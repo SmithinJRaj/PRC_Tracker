@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 type LeaderboardEntry = {
   junior_id: string
   junior_name: string
+  role: string
   registration_count: number
   group_id: string | null
   group_name: string | null
@@ -23,24 +24,41 @@ export default function LeaderboardView({ data, groups }: { data: LeaderboardEnt
   const [selectedStateGroup, setSelectedStateGroup] = useState<string>('all')
   const [selectedDistrictGroup, setSelectedDistrictGroup] = useState<string>('all')
 
-  const stateGroups = groups.filter(g => g.type === 'state')
   const districtGroups = groups.filter(g => g.type === 'district')
+  
+  const stateGroupsMap = new Map<string, string>()
+  groups.forEach(g => {
+    if (g.type === 'state') {
+      stateGroupsMap.set(g.id, g.name)
+    } else if (g.name.startsWith('Kerala - ')) {
+      stateGroupsMap.set('kerala-aggregated', 'Kerala')
+    }
+  })
+  const stateGroupOptions = Array.from(stateGroupsMap.entries()).map(([id, name]) => ({ id, name }))
 
-  // Enrich data with group_type
+  // Enrich data with group_type and aggregated names
   const enrichedData = data.map(entry => {
     const group = groups.find(g => g.id === entry.group_id)
+    const isKeralaDistrict = group?.name.startsWith('Kerala - ')
     return {
       ...entry,
-      group_type: group?.type || null
+      original_group_name: group?.name || null,
+      original_group_type: group?.type || null,
+      aggregated_group_name: isKeralaDistrict ? 'Kerala' : (group?.name || null),
+      aggregated_group_type: isKeralaDistrict ? 'state' : (group?.type || null)
     }
   })
 
-  const stateData = enrichedData.filter(d => d.group_type === 'state')
+  const stateData = enrichedData.filter(d => d.aggregated_group_type === 'state')
   const filteredStateData = selectedStateGroup === 'all' 
     ? stateData 
-    : stateData.filter(d => d.group_id === selectedStateGroup)
+    : stateData.filter(d => 
+        selectedStateGroup === 'kerala-aggregated'
+          ? d.aggregated_group_name === 'Kerala'
+          : d.group_id === selectedStateGroup
+      )
 
-  const districtData = enrichedData.filter(d => d.group_type === 'district')
+  const districtData = enrichedData.filter(d => d.original_group_type === 'district')
   const filteredDistrictData = selectedDistrictGroup === 'all' 
     ? districtData 
     : districtData.filter(d => d.group_id === selectedDistrictGroup)
@@ -57,7 +75,7 @@ export default function LeaderboardView({ data, groups }: { data: LeaderboardEnt
 
       <TabsContent value="global">
         <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
-          <LeaderboardTable data={enrichedData} showGroupBadge={true} />
+          <LeaderboardTable data={enrichedData} groupNameKey="aggregated_group_name" />
         </div>
       </TabsContent>
 
@@ -70,13 +88,13 @@ export default function LeaderboardView({ data, groups }: { data: LeaderboardEnt
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All States</SelectItem>
-                {stateGroups.map(g => (
+                {stateGroupOptions.map(g => (
                   <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <LeaderboardTable data={filteredStateData} showGroupBadge={selectedStateGroup === 'all'} />
+          <LeaderboardTable data={filteredStateData} groupNameKey="aggregated_group_name" hiddenGroup={selectedStateGroup !== 'all'} />
         </div>
       </TabsContent>
 
@@ -95,22 +113,25 @@ export default function LeaderboardView({ data, groups }: { data: LeaderboardEnt
               </SelectContent>
             </Select>
           </div>
-          <LeaderboardTable data={filteredDistrictData} showGroupBadge={selectedDistrictGroup === 'all'} />
+          <LeaderboardTable data={filteredDistrictData} groupNameKey="original_group_name" hiddenGroup={selectedDistrictGroup !== 'all'} />
         </div>
       </TabsContent>
     </Tabs>
   )
 }
 
-function LeaderboardTable({ data, showGroupBadge }: { data: (LeaderboardEntry & { group_type: string | null })[], showGroupBadge: boolean }) {
+function LeaderboardTable({ data, groupNameKey, hiddenGroup = false }: { data: any[], groupNameKey: string, hiddenGroup?: boolean }) {
+  // We re-sort data just in case the aggregation messes with the order (since multiple people might now have same count)
+  // Actually, the original order is by count, so it's already sorted.
   return (
     <div className="rounded-xl overflow-x-auto border">
       <Table>
         <TableHeader className="bg-gray-50">
           <TableRow>
             <TableHead className="w-24 text-center">Rank</TableHead>
-            <TableHead>Junior Name</TableHead>
-            {showGroupBadge && <TableHead>Group</TableHead>}
+            <TableHead>User Name</TableHead>
+            <TableHead>Role</TableHead>
+            {!hiddenGroup && <TableHead>Group</TableHead>}
             <TableHead className="text-right">Total Registrations</TableHead>
           </TableRow>
         </TableHeader>
@@ -124,13 +145,20 @@ function LeaderboardTable({ data, showGroupBadge }: { data: (LeaderboardEntry & 
                 <TableCell className="font-semibold text-gray-900">
                   {entry.junior_name}
                 </TableCell>
-                {showGroupBadge && (
+                <TableCell>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${
+                    entry.role === 'senior' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+                  }`}>
+                    {entry.role || 'Junior'}
+                  </span>
+                </TableCell>
+                {!hiddenGroup && (
                   <TableCell>
-                    {entry.group_name ? (
+                    {entry[groupNameKey] ? (
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        entry.group_type === 'state' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                        entry.aggregated_group_type === 'state' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
                       }`}>
-                        {entry.group_name}
+                        {entry[groupNameKey]}
                       </span>
                     ) : (
                       <span className="text-gray-400 text-xs">None</span>
@@ -144,7 +172,7 @@ function LeaderboardTable({ data, showGroupBadge }: { data: (LeaderboardEntry & 
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={showGroupBadge ? 4 : 3} className="h-24 text-center text-gray-500">
+              <TableCell colSpan={hiddenGroup ? 4 : 5} className="h-24 text-center text-gray-500">
                 No registrations logged yet.
               </TableCell>
             </TableRow>

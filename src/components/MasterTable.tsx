@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import { revalidateDashboard } from '@/app/actions'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -77,6 +78,8 @@ export default function MasterTable({ initialData, role, currentUserId, regions 
       toast.error('Failed to update verification status')
       // Revert on error
       setData(data.map(r => r.id === regId ? { ...r, verification_status: currentStatus } : r))
+    } else {
+      await revalidateDashboard()
     }
   }
 
@@ -92,6 +95,7 @@ export default function MasterTable({ initialData, role, currentUserId, regions 
     } else {
       toast.success('Registration deleted successfully')
       setData(data.filter(r => r.id !== selectedReg.id))
+      await revalidateDashboard()
       router.refresh()
     }
   }
@@ -257,6 +261,7 @@ export default function MasterTable({ initialData, role, currentUserId, regions 
         {selectedReg && (
           <RegistrationForm 
             userId={selectedReg.registered_by} 
+            userGroupId={null}
             initialData={selectedReg as any} 
             onSuccess={() => {
               setEditModalOpen(false)

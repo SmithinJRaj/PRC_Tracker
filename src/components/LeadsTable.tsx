@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import { revalidateDashboard } from '@/app/actions'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
@@ -36,7 +37,7 @@ type Lead = {
   } | null
 }
 
-export default function LeadsTable({ leads, userId, role, regions }: { leads: Lead[], userId: string, role: string, regions: Region[] }) {
+export default function LeadsTable({ leads, userId, userGroupId, role, regions }: { leads: Lead[], userId: string, userGroupId: string | null, role: string, regions: Region[] }) {
   const [data, setData] = useState<Lead[]>(leads)
   const [convertModalOpen, setConvertModalOpen] = useState(false)
   const [leadFormModalOpen, setLeadFormModalOpen] = useState(false)
@@ -59,6 +60,7 @@ export default function LeadsTable({ leads, userId, role, regions }: { leads: Le
     } else {
       toast.success('Lead claimed successfully!')
       setData(data.map(l => l.id === leadId ? { ...l, registered_by: userId } : l))
+      await revalidateDashboard()
       router.refresh()
     }
   }
@@ -74,6 +76,7 @@ export default function LeadsTable({ leads, userId, role, regions }: { leads: Le
     } else {
       toast.success('Status updated!')
       setData(data.map(l => l.id === leadId ? { ...l, lead_status: status } : l))
+      await revalidateDashboard()
     }
   }
 
@@ -87,6 +90,7 @@ export default function LeadsTable({ leads, userId, role, regions }: { leads: Le
       toast.error('Failed to save notes')
     } else {
       setData(data.map(l => l.id === leadId ? { ...l, notes } : l))
+      await revalidateDashboard()
     }
   }
 
@@ -102,6 +106,7 @@ export default function LeadsTable({ leads, userId, role, regions }: { leads: Le
     } else {
       toast.success('Lead deleted successfully')
       setData(data.filter(l => l.id !== selectedLead.id))
+      await revalidateDashboard()
       router.refresh()
     }
   }
@@ -238,6 +243,7 @@ export default function LeadsTable({ leads, userId, role, regions }: { leads: Le
         {selectedLead && (
           <RegistrationForm 
             userId={userId} 
+            userGroupId={userGroupId}
             initialData={selectedLead as any} 
             isConvert={true} 
             onSuccess={() => {
@@ -252,6 +258,7 @@ export default function LeadsTable({ leads, userId, role, regions }: { leads: Le
       <Modal isOpen={leadFormModalOpen} onClose={() => setLeadFormModalOpen(false)}>
         <LeadForm 
           userId={userId} 
+          userGroupId={userGroupId}
           initialData={selectedLead || undefined} 
           onSuccess={() => {
             setLeadFormModalOpen(false)

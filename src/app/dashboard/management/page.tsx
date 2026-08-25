@@ -45,10 +45,10 @@ export default async function ManagementDashboard() {
     .order('name', { ascending: true })
 
   const seniors = allUsers?.filter(u => u.role === 'senior') || []
-  const juniors = allUsers?.filter(u => u.role === 'junior') || []
+  const members = allUsers?.filter(u => u.role === 'junior' || u.role === 'senior') || []
   
-  // Find which group the current senior belongs to (if they are a head)
-  const seniorGroup = allGroups?.find(g => g.head_id === profile.id)
+  // Find which group the current senior belongs to
+  const seniorGroupId = profile.group_id
 
   return (
     <div className="space-y-8">
@@ -82,16 +82,16 @@ export default async function ManagementDashboard() {
         )}
         
         <TabsContent value="teams">
-          {!isAdmin && !seniorGroup ? (
+          {!isAdmin && !seniorGroupId ? (
             <div className="p-8 text-center text-gray-500 bg-white rounded-xl shadow-sm border border-gray-100 mt-4">
-              You are not assigned as the head of any group yet.
+              You are not assigned to any group yet.
             </div>
           ) : (
             <TeamAssignment 
-              juniors={juniors} 
+              members={members} 
               groups={allGroups || []} 
               currentRole={profile.role}
-              seniorGroupId={seniorGroup?.id}
+              seniorGroupId={seniorGroupId}
             />
           )}
         </TabsContent>

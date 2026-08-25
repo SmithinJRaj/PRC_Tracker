@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import { revalidateDashboard } from '@/app/actions'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,10 +29,11 @@ type Props = {
   initialData?: LeadData
   onSuccess?: () => void
   userId: string
+  userGroupId: string | null
   regions: Region[]
 }
 
-export default function LeadForm({ initialData, onSuccess, userId, regions }: Props) {
+export default function LeadForm({ initialData, onSuccess, userId, userGroupId, regions }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
@@ -73,7 +75,7 @@ export default function LeadForm({ initialData, onSuccess, userId, regions }: Pr
         toast.error('Failed to update lead', { description: error.message })
       } else {
         toast.success('Lead updated!')
-        router.refresh()
+        await revalidateDashboard()
         if (onSuccess) onSuccess()
       }
     } else {
@@ -81,7 +83,8 @@ export default function LeadForm({ initialData, onSuccess, userId, regions }: Pr
       const insertData = {
         ...data,
         lead_status: 'uncontacted',
-        registered_by: null // explicit null to match "no registered_by"
+        registered_by: null, // explicit null to match "no registered_by"
+        group_id: userGroupId
       }
       
       const { error } = await supabase.from('registrations').insert(insertData)
@@ -92,7 +95,7 @@ export default function LeadForm({ initialData, onSuccess, userId, regions }: Pr
         toast.success('Lead created successfully!')
         ;(e.target as HTMLFormElement).reset()
         setRegionId('')
-        router.refresh()
+        await revalidateDashboard()
         if (onSuccess) onSuccess()
       }
     }
@@ -131,7 +134,7 @@ export default function LeadForm({ initialData, onSuccess, userId, regions }: Pr
             <Label>Region</Label>
             <Select value={regionId} onValueChange={(val) => setRegionId(val || '')}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a region..." />
+                <SelectValue>{regions.find(r => r.id === regionId)?.name || 'Select a region...'}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {regions.map((region) => (

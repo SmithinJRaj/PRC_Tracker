@@ -29,7 +29,7 @@ type Registration = {
   } | null
 }
 
-export default function JuniorRegistrations({ registrations, userId, regions }: { registrations: Registration[], userId: string, regions: Region[] }) {
+export default function JuniorRegistrations({ registrations, userId, userGroupId, regions }: { registrations: Registration[], userId: string, userGroupId: string | null, regions: Region[] }) {
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [selectedReg, setSelectedReg] = useState<Registration | null>(null)
 
@@ -94,6 +94,7 @@ export default function JuniorRegistrations({ registrations, userId, regions }: 
         {selectedReg && (
           <RegistrationForm 
             userId={userId} 
+            userGroupId={userGroupId}
             initialData={selectedReg} 
             onSuccess={() => setEditModalOpen(false)}
             regions={regions}

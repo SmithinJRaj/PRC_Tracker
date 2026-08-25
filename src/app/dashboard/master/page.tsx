@@ -37,17 +37,16 @@ export default async function MasterDashboard() {
     .eq('lead_status', 'registered')
     .order('created_at', { ascending: false })
 
-  // If Senior, only fetch registrations belonging to their group
   if (profile?.role === 'senior' && profile.group_id) {
     query = supabase
       .from('registrations')
       .select(`
         *,
-        users!inner (full_name, group_id),
+        users:registered_by (full_name, group_id),
         regions:region_id (name)
       `)
       .eq('lead_status', 'registered')
-      .eq('users.group_id', profile.group_id)
+      .eq('group_id', profile.group_id)
       .order('created_at', { ascending: false })
   }
 

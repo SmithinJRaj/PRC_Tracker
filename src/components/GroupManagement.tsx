@@ -17,7 +17,6 @@ import { Edit, Trash2 } from 'lucide-react'
 type Group = {
   id: string
   name: string
-  head_id: string | null
 }
 
 type User = {
@@ -35,24 +34,7 @@ export default function GroupManagement({ initialGroups, seniors }: { initialGro
   const supabase = createClient()
   const router = useRouter()
 
-  const handleHeadChange = async (groupId: string, newHeadId: string | null) => {
-    // Optimistic update
-    const previousGroups = [...groups]
-    setGroups(groups.map(g => g.id === groupId ? { ...g, head_id: newHeadId } : g))
 
-    const { error } = await supabase
-      .from('groups')
-      .update({ head_id: newHeadId })
-      .eq('id', groupId)
-
-    if (error) {
-      toast.error('Failed to assign head', { description: error.message })
-      setGroups(previousGroups)
-    } else {
-      toast.success('Group head assigned successfully!')
-      router.refresh()
-    }
-  }
 
   const handleCreateGroup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -148,7 +130,6 @@ export default function GroupManagement({ initialGroups, seniors }: { initialGro
               <TableHeader>
                 <TableRow>
                   <TableHead>Group Name</TableHead>
-                  <TableHead>Group Head (Senior)</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -156,22 +137,6 @@ export default function GroupManagement({ initialGroups, seniors }: { initialGro
                 {groups.map((g) => (
                   <TableRow key={g.id}>
                     <TableCell className="font-medium">{g.name}</TableCell>
-                    <TableCell>
-                      <Select 
-                        value={g.head_id || 'unassigned'} 
-                        onValueChange={(val) => handleHeadChange(g.id, (val || 'unassigned') === 'unassigned' ? null : (val as string))}
-                      >
-                        <SelectTrigger className="w-[200px]">
-                          <SelectValue placeholder="Unassigned" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="unassigned">Unassigned</SelectItem>
-                          {seniors.map(s => (
-                            <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end items-center gap-1">
                         <Button 
