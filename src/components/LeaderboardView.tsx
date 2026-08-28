@@ -20,7 +20,7 @@ type Group = {
   type: string
 }
 
-export default function LeaderboardView({ data, groups }: { data: LeaderboardEntry[], groups: Group[] }) {
+export default function LeaderboardView({ data, groups, currentRole }: { data: LeaderboardEntry[], groups: Group[], currentRole: string }) {
   const [selectedStateGroup, setSelectedStateGroup] = useState<string>('all')
   const [selectedDistrictGroup, setSelectedDistrictGroup] = useState<string>('all')
 
@@ -95,7 +95,7 @@ export default function LeaderboardView({ data, groups }: { data: LeaderboardEnt
 
       <TabsContent value="global">
         <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
-          <LeaderboardTable data={globalData} groupNameKey="aggregated_group_name" />
+          <LeaderboardTable data={globalData} groupNameKey="aggregated_group_name" currentRole={currentRole} />
         </div>
       </TabsContent>
 
@@ -114,7 +114,7 @@ export default function LeaderboardView({ data, groups }: { data: LeaderboardEnt
               </SelectContent>
             </Select>
           </div>
-          <LeaderboardTable data={filteredStateData} groupNameKey="aggregated_group_name" hiddenGroup={selectedStateGroup !== 'all'} />
+          <LeaderboardTable data={filteredStateData} groupNameKey="aggregated_group_name" hiddenGroup={selectedStateGroup !== 'all'} currentRole={currentRole} />
         </div>
       </TabsContent>
 
@@ -133,14 +133,14 @@ export default function LeaderboardView({ data, groups }: { data: LeaderboardEnt
               </SelectContent>
             </Select>
           </div>
-          <LeaderboardTable data={filteredDistrictData} groupNameKey="original_group_name" hiddenGroup={selectedDistrictGroup !== 'all'} />
+          <LeaderboardTable data={filteredDistrictData} groupNameKey="original_group_name" hiddenGroup={selectedDistrictGroup !== 'all'} currentRole={currentRole} />
         </div>
       </TabsContent>
     </Tabs>
   )
 }
 
-function LeaderboardTable({ data, groupNameKey, hiddenGroup = false }: { data: any[], groupNameKey: string, hiddenGroup?: boolean }) {
+function LeaderboardTable({ data, groupNameKey, hiddenGroup = false, currentRole }: { data: any[], groupNameKey: string, hiddenGroup?: boolean, currentRole: string }) {
   // We re-sort data just in case the aggregation messes with the order (since multiple people might now have same count)
   // Actually, the original order is by count, so it's already sorted.
   return (
@@ -152,7 +152,7 @@ function LeaderboardTable({ data, groupNameKey, hiddenGroup = false }: { data: a
             <TableHead>User Name</TableHead>
             <TableHead>Role</TableHead>
             {!hiddenGroup && <TableHead>Group</TableHead>}
-            <TableHead className="text-right">Total Registrations</TableHead>
+            {currentRole !== 'junior' && <TableHead className="text-right">Total Registrations</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -185,14 +185,16 @@ function LeaderboardTable({ data, groupNameKey, hiddenGroup = false }: { data: a
                     )}
                   </TableCell>
                 )}
-                <TableCell className="text-right font-mono text-blue-600 font-bold text-lg">
-                  {entry.registration_count}
-                </TableCell>
+                {currentRole !== 'junior' && (
+                  <TableCell className="text-right font-mono text-blue-600 font-bold text-lg">
+                    {entry.registration_count}
+                  </TableCell>
+                )}
               </TableRow>
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={hiddenGroup ? 4 : 5} className="h-24 text-center text-gray-500">
+              <TableCell colSpan={(hiddenGroup ? 3 : 4) + (currentRole !== 'junior' ? 1 : 0)} className="h-24 text-center text-gray-500">
                 No registrations logged yet.
               </TableCell>
             </TableRow>

@@ -10,6 +10,12 @@ export default async function LeaderboardPage() {
     redirect('/login')
   }
 
+  const { data: profile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
   // Call the secure RPC function to get the leaderboard
   const { data: leaderboard, error } = await supabase
     .rpc('get_leaderboard')
@@ -31,7 +37,7 @@ export default async function LeaderboardPage() {
         <p className="mt-4 text-lg text-gray-600">Top performers in the PR committee based on successfully logged registrations.</p>
       </div>
 
-      <LeaderboardView data={leaderboard || []} groups={groups || []} />
+      <LeaderboardView data={leaderboard || []} groups={groups || []} currentRole={profile?.role || 'junior'} />
     </div>
   )
 }

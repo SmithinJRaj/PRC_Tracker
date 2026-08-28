@@ -22,6 +22,7 @@ type Registration = {
   attendee_email: string | null
   event: string | null
   tathva_id: string | null
+  reg_fee: number | null
   lead_status: string
   created_at: string
   verification_status: string
@@ -107,7 +108,7 @@ export default function MasterTable({ initialData, role, currentUserId }: { init
   }
 
   const exportCSV = () => {
-    const headers = ['Attendee Name', 'College', 'Region', 'Phone', 'Email', 'Event', 'Tathva ID', 'Registered By', 'Verification Status', 'Date']
+    const headers = ['Attendee Name', 'College', 'Region', 'Phone', 'Email', 'Event', 'Tathva ID', 'Fee', 'Registered By', 'Verification Status', 'Date']
     const csvContent = [
       headers.join(','),
       ...filteredData.map(r => [
@@ -118,6 +119,7 @@ export default function MasterTable({ initialData, role, currentUserId }: { init
         `"${r.attendee_email || ''}"`,
         `"${r.event || ''}"`,
         `"${r.tathva_id || ''}"`,
+        `"${r.reg_fee || 0}"`,
         `"${r.users?.full_name || 'Unknown'}"`,
         `"${r.verification_status}"`,
         `"${new Date(r.created_at).toLocaleDateString()}"`
@@ -178,6 +180,7 @@ export default function MasterTable({ initialData, role, currentUserId }: { init
                 <TableHead>College</TableHead>
                 <TableHead>Region</TableHead>
                 <TableHead>Event</TableHead>
+                <TableHead>Fee</TableHead>
                 <TableHead>Registered By</TableHead>
                 <TableHead>Date</TableHead>
                 {canManage && <TableHead className="text-right">Actions</TableHead>}
@@ -213,6 +216,7 @@ export default function MasterTable({ initialData, role, currentUserId }: { init
                       {reg.event || 'None'}
                     </span>
                   </TableCell>
+                  <TableCell className="font-mono text-gray-700">₹{reg.reg_fee || 0}</TableCell>
                   <TableCell className="text-gray-500">{reg.users?.full_name || 'Unknown'}</TableCell>
                   <TableCell>{new Date(reg.created_at).toLocaleDateString()}</TableCell>
                   {canManage && (
@@ -243,7 +247,7 @@ export default function MasterTable({ initialData, role, currentUserId }: { init
               ))}
               {filteredData.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={canManage ? 8 : 7} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={canManage ? 9 : 8} className="text-center py-8 text-gray-500">
                     No registrations found.
                   </TableCell>
                 </TableRow>

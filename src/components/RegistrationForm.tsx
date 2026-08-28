@@ -19,6 +19,7 @@ type Registration = {
   attendee_email: string | null
   event: string | null
   tathva_id: string | null
+  reg_fee: number | null
   lead_status: string
 }
 
@@ -60,6 +61,7 @@ export default function RegistrationForm({ userId, userGroupId, initialData, isC
     const phoneInput = formData.get('phone') as string
     const attendee_email = formData.get('attendee_email') as string
     const tathva_id = formData.get('tathva_id') as string
+    const reg_fee_str = formData.get('reg_fee') as string
     
     const phone = phoneInput ? `${countryCode}${phoneInput}`.replace(/\s/g, '') : null
 
@@ -82,6 +84,7 @@ export default function RegistrationForm({ userId, userGroupId, initialData, isC
       attendee_email: attendee_email || null,
       event: formData.get('event') as string,
       tathva_id: tathva_id || null,
+      reg_fee: reg_fee_str ? Number(reg_fee_str) : 0,
       registered_by: userId,
       lead_status: tathva_id ? 'registered' : (initialData?.lead_status || 'uncontacted')
     }
@@ -167,6 +170,11 @@ export default function RegistrationForm({ userId, userGroupId, initialData, isC
               <Label htmlFor="tathva_id">Tathva ID</Label>
               <Input id="tathva_id" name="tathva_id" defaultValue={initialData?.tathva_id || ''} placeholder="T24-12345" />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="reg_fee">Registration Fee (₹)</Label>
+            <Input id="reg_fee" name="reg_fee" type="number" min="0" step="0.01" defaultValue={initialData?.reg_fee || 0} placeholder="0" />
           </div>
 
           <Button type="submit" className="w-full mt-4" disabled={loading || disableCreation}>

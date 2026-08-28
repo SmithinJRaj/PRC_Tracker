@@ -14,7 +14,7 @@ type Registration = {
   attendee_email: string | null
   event: string | null
   tathva_id: string | null
-  region_id: string | null
+  reg_fee: number | null
   lead_status: string
   created_at: string
   verification_status: string
