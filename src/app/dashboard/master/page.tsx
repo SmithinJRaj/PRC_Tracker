@@ -20,12 +20,6 @@ export default async function MasterDashboard() {
     redirect('/dashboard/register')
   }
 
-  // Fetch regions for dropdowns
-  const { data: regions } = await supabase
-    .from('regions')
-    .select('id, name')
-    .order('name', { ascending: true })
-
   // Build query
   let query = supabase
     .from('registrations')
@@ -63,7 +57,6 @@ export default async function MasterDashboard() {
         initialData={registrations || []} 
         role={profile.role} 
         currentUserId={user.id} 
-        regions={regions || []}
       />
     </div>
   )

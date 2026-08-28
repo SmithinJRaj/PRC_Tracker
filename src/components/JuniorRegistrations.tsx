@@ -6,11 +6,6 @@ import { Button } from '@/components/ui/button'
 import Modal from './Modal'
 import RegistrationForm from './RegistrationForm'
 
-type Region = {
-  id: string
-  name: string
-}
-
 type Registration = {
   id: string
   attendee_name: string
@@ -24,12 +19,12 @@ type Registration = {
   created_at: string
   verification_status: string
   can_junior_edit: boolean
-  regions: {
+  groups: {
     name: string
   } | null
 }
 
-export default function JuniorRegistrations({ registrations, userId, userGroupId, regions }: { registrations: Registration[], userId: string, userGroupId: string | null, regions: Region[] }) {
+export default function JuniorRegistrations({ registrations, userId, userGroupId }: { registrations: Registration[], userId: string, userGroupId: string | null }) {
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [selectedReg, setSelectedReg] = useState<Registration | null>(null)
 
@@ -62,7 +57,7 @@ export default function JuniorRegistrations({ registrations, userId, userGroupId
                     <TableRow key={reg.id}>
                       <TableCell className="font-medium">{reg.attendee_name}</TableCell>
                       <TableCell>{reg.college_name}</TableCell>
-                      <TableCell>{reg.regions?.name || 'Unknown'}</TableCell>
+                      <TableCell>{reg.groups?.name || 'Unknown'}</TableCell>
                       <TableCell>
                         <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                           {reg.event || 'None'}
@@ -97,7 +92,6 @@ export default function JuniorRegistrations({ registrations, userId, userGroupId
             userGroupId={userGroupId}
             initialData={selectedReg} 
             onSuccess={() => setEditModalOpen(false)}
-            regions={regions}
           />
         )}
       </Modal>

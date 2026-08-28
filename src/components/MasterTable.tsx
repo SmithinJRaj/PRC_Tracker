@@ -13,11 +13,6 @@ import RegistrationForm from './RegistrationForm'
 import AlertDialog from './AlertDialog'
 import { Download, CheckCircle2, Circle, Edit, Trash2, Mail, Phone } from 'lucide-react'
 
-type Region = {
-  id: string
-  name: string
-}
-
 type Registration = {
   id: string
   attendee_name: string
@@ -40,7 +35,7 @@ type Registration = {
   } | null
 }
 
-export default function MasterTable({ initialData, role, currentUserId, regions }: { initialData: Registration[], role: string, currentUserId: string, regions: Region[] }) {
+export default function MasterTable({ initialData, role, currentUserId }: { initialData: Registration[], role: string, currentUserId: string }) {
   const [data, setData] = useState<Registration[]>(initialData)
   const [search, setSearch] = useState('')
   const [editModalOpen, setEditModalOpen] = useState(false)
@@ -268,7 +263,6 @@ export default function MasterTable({ initialData, role, currentUserId, regions 
               setEditModalOpen(false)
               router.refresh()
             }}
-            regions={regions}
           />
         )}
       </Modal>

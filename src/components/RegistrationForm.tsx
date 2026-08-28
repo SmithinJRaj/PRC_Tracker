@@ -11,11 +11,6 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 
-type Region = {
-  id: string
-  name: string
-}
-
 type Registration = {
   id?: string
   attendee_name: string
@@ -24,7 +19,6 @@ type Registration = {
   attendee_email: string | null
   event: string | null
   tathva_id: string | null
-  region_id: string | null
   lead_status: string
 }
 
@@ -34,14 +28,12 @@ type Props = {
   initialData?: Registration
   isConvert?: boolean
   onSuccess?: () => void
-  regions: Region[]
 }
 
-export default function RegistrationForm({ userId, userGroupId, initialData, isConvert, onSuccess, regions }: Props) {
+export default function RegistrationForm({ userId, userGroupId, initialData, isConvert, onSuccess }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
-  const [regionId, setRegionId] = useState<string>(initialData?.region_id || '')
 
   const phoneRegex = /^(\+\d{1,4})\s?(.*)$/
   let defaultCountryCode = '+91'
@@ -64,12 +56,6 @@ export default function RegistrationForm({ userId, userGroupId, initialData, isC
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    
-    if (!regionId) {
-      toast.error('Please select a region.')
-      return
-    }
-
     const formData = new FormData(e.currentTarget)
     const phoneInput = formData.get('phone') as string
     const attendee_email = formData.get('attendee_email') as string
@@ -96,7 +82,6 @@ export default function RegistrationForm({ userId, userGroupId, initialData, isC
       attendee_email: attendee_email || null,
       event: formData.get('event') as string,
       tathva_id: tathva_id || null,
-      region_id: regionId,
       registered_by: userId,
       lead_status: tathva_id ? 'registered' : (initialData?.lead_status || 'uncontacted')
     }
@@ -120,7 +105,6 @@ export default function RegistrationForm({ userId, userGroupId, initialData, isC
       } else {
         toast.success('Registration added successfully!')
         ;(e.target as HTMLFormElement).reset()
-        setRegionId('')
         await revalidateDashboard()
         if (onSuccess) onSuccess()
       }
@@ -171,21 +155,6 @@ export default function RegistrationForm({ userId, userGroupId, initialData, isC
             <div className="space-y-2">
               <Label htmlFor="college_name">College Name</Label>
               <Input id="college_name" name="college_name" required defaultValue={initialData?.college_name || ''} placeholder="NIT Calicut" />
-            </div>
-            <div className="space-y-2">
-              <Label>Region</Label>
-              <Select value={regionId} onValueChange={(val) => setRegionId(val || '')}>
-                <SelectTrigger>
-                  <SelectValue>{regions.find(r => r.id === regionId)?.name || 'Select a region...'}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {regions.map((region) => (
-                    <SelectItem key={region.id} value={region.id}>
-                      {region.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
 

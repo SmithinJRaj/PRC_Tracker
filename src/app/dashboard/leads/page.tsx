@@ -20,12 +20,6 @@ export default async function LeadsPage() {
     redirect('/login')
   }
 
-  // Fetch regions for dropdowns
-  const { data: regions } = await supabase
-    .from('regions')
-    .select('id, name')
-    .order('name', { ascending: true })
-
   // Fetch leads
   let query = supabase
     .from('registrations')
@@ -66,7 +60,7 @@ export default async function LeadsPage() {
         <p className="mt-2 text-gray-600">Track and convert prospective attendees.</p>
       </div>
 
-      <LeadsTable leads={leads || []} userId={user.id} userGroupId={profile.group_id || null} role={profile.role} regions={regions || []} />
+      <LeadsTable leads={leads || []} userId={user.id} userGroupId={profile.group_id || null} role={profile.role} />
     </div>
   )
 }

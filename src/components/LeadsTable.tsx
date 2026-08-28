@@ -15,11 +15,6 @@ import LeadForm from './LeadForm'
 import AlertDialog from './AlertDialog'
 import { Plus, Trash2, Edit, Mail, Phone } from 'lucide-react'
 
-type Region = {
-  id: string
-  name: string
-}
-
 type Lead = {
   id: string
   attendee_name: string
@@ -38,7 +33,7 @@ type Lead = {
   } | null
 }
 
-export default function LeadsTable({ leads, userId, userGroupId, role, regions }: { leads: Lead[], userId: string, userGroupId: string | null, role: string, regions: Region[] }) {
+export default function LeadsTable({ leads, userId, userGroupId, role }: { leads: Lead[], userId: string, userGroupId: string | null, role: string }) {
   const [data, setData] = useState<Lead[]>(leads)
   const [search, setSearch] = useState('')
   const [convertModalOpen, setConvertModalOpen] = useState(false)
@@ -273,7 +268,6 @@ export default function LeadsTable({ leads, userId, userGroupId, role, regions }
               setConvertModalOpen(false)
               setData(data.filter(l => l.id !== selectedLead.id))
             }}
-            regions={regions}
           />
         )}
       </Modal>
@@ -286,7 +280,6 @@ export default function LeadsTable({ leads, userId, userGroupId, role, regions }
           onSuccess={() => {
             setLeadFormModalOpen(false)
           }}
-          regions={regions}
         />
       </Modal>
 

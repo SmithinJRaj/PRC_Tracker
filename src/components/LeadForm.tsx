@@ -11,18 +11,12 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 
-type Region = {
-  id: string
-  name: string
-}
-
 type LeadData = {
   id?: string
   attendee_name: string
   phone: string | null
   attendee_email: string | null
   college_name: string | null
-  region_id: string | null
 }
 
 type Props = {
@@ -30,14 +24,12 @@ type Props = {
   onSuccess?: () => void
   userId: string
   userGroupId: string | null
-  regions: Region[]
 }
 
-export default function LeadForm({ initialData, onSuccess, userId, userGroupId, regions }: Props) {
+export default function LeadForm({ initialData, onSuccess, userId, userGroupId }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
-  const [regionId, setRegionId] = useState<string>(initialData?.region_id || '')
   
   const phoneRegex = /^(\+\d{1,4})\s?(.*)$/
   let defaultCountryCode = '+91'
@@ -60,12 +52,6 @@ export default function LeadForm({ initialData, onSuccess, userId, userGroupId, 
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    
-    if (!regionId) {
-      toast.error('Please select a region.')
-      return
-    }
-
     const formData = new FormData(e.currentTarget)
     const phoneInput = formData.get('phone') as string
     const attendee_email = formData.get('attendee_email') as string
@@ -82,8 +68,7 @@ export default function LeadForm({ initialData, onSuccess, userId, userGroupId, 
       attendee_name: formData.get('attendee_name') as string,
       phone,
       attendee_email: attendee_email || null,
-      college_name: formData.get('college_name') as string,
-      region_id: regionId
+      college_name: formData.get('college_name') as string
     }
 
     if (isEdit) {
@@ -112,7 +97,6 @@ export default function LeadForm({ initialData, onSuccess, userId, userGroupId, 
       } else {
         toast.success('Lead created successfully!')
         ;(e.target as HTMLFormElement).reset()
-        setRegionId('')
         await revalidateDashboard()
         if (onSuccess) onSuccess()
       }
@@ -160,21 +144,6 @@ export default function LeadForm({ initialData, onSuccess, userId, userGroupId, 
           <div className="space-y-2">
             <Label htmlFor="college_name">College Name (Optional)</Label>
             <Input id="college_name" name="college_name" defaultValue={initialData?.college_name || ''} placeholder="NIT Calicut" />
-          </div>
-          <div className="space-y-2">
-            <Label>Region</Label>
-            <Select value={regionId} onValueChange={(val) => setRegionId(val || '')}>
-              <SelectTrigger>
-                <SelectValue>{regions.find(r => r.id === regionId)?.name || 'Select a region...'}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {regions.map((region) => (
-                  <SelectItem key={region.id} value={region.id}>
-                    {region.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <Button type="submit" className="w-full mt-4" disabled={loading || disableCreation}>
