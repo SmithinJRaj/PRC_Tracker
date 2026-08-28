@@ -34,10 +34,15 @@ export default async function SummaryPage() {
     `)
     .eq('lead_status', 'registered')
 
-  // Fetch users for active users count (if needed for further scopes)
+  // Fetch users for active users count
   const { data: users } = await supabase
     .from('users')
-    .select('id, group_id, role')
+    .select(`
+      id, 
+      group_id, 
+      role,
+      groups:group_id (name, type)
+    `)
 
   return (
     <div className="space-y-8">
@@ -46,7 +51,7 @@ export default async function SummaryPage() {
         <p className="mt-2 text-gray-600">High-level financial tracking and operational analytics.</p>
       </div>
 
-      <SummaryView registrations={registrations as any || []} users={users || []} />
+      <SummaryView registrations={registrations as any || []} users={users as any || []} />
     </div>
   )
 }
