@@ -32,7 +32,7 @@ export default async function MasterDashboard() {
     .select(`
       *,
       users:registered_by (full_name, group_id),
-      regions:region_id (name)
+      groups:group_id (name)
     `)
     .eq('lead_status', 'registered')
     .order('created_at', { ascending: false })
@@ -43,7 +43,7 @@ export default async function MasterDashboard() {
       .select(`
         *,
         users:registered_by (full_name, group_id),
-        regions:region_id (name)
+        groups:group_id (name)
       `)
       .eq('lead_status', 'registered')
       .eq('group_id', profile.group_id)

@@ -35,7 +35,7 @@ type Registration = {
   users: {
     full_name: string
   } | null
-  regions: {
+  groups: {
     name: string
   } | null
 }
@@ -118,7 +118,7 @@ export default function MasterTable({ initialData, role, currentUserId, regions 
       ...filteredData.map(r => [
         `"${r.attendee_name}"`,
         `"${r.college_name || ''}"`,
-        `"${r.regions?.name || ''}"`,
+        `"${r.groups?.name || ''}"`,
         `"${r.phone || ''}"`,
         `"${r.attendee_email || ''}"`,
         `"${r.event || ''}"`,
@@ -212,7 +212,7 @@ export default function MasterTable({ initialData, role, currentUserId, regions 
                     </div>
                   </TableCell>
                   <TableCell>{reg.college_name}</TableCell>
-                  <TableCell>{reg.regions?.name || 'Unknown'}</TableCell>
+                  <TableCell>{reg.groups?.name || 'Unknown'}</TableCell>
                   <TableCell>
                     <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                       {reg.event || 'None'}

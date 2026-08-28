@@ -33,7 +33,7 @@ type Lead = {
   notes: string | null
   registered_by: string | null
   group_id: string | null
-  regions: {
+  groups: {
     name: string
   } | null
 }
@@ -188,7 +188,7 @@ export default function LeadsTable({ leads, userId, userGroupId, role, regions }
                     {!lead.phone && !lead.attendee_email && <span className="text-gray-400 italic">None</span>}
                   </div>
                 </TableCell>
-                <TableCell>{lead.regions?.name || 'Unknown'}</TableCell>
+                <TableCell>{lead.groups?.name || 'Unknown'}</TableCell>
                 <TableCell>
                   <Select 
                     value={lead.lead_status} 

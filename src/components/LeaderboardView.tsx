@@ -49,20 +49,23 @@ export default function LeaderboardView({ data, groups }: { data: LeaderboardEnt
     }
   })
 
-  const reduceData = (dataToReduce: typeof enrichedData, groupKey: 'aggregated_group_name' | 'original_group_name') => {
+  const reduceData = (dataToReduce: typeof enrichedData, groupKey: 'aggregated_group_name' | 'original_group_name', purelyByUser = false) => {
     const reduced = dataToReduce.reduce((acc, curr) => {
-      const key = `${curr.user_id}-${curr[groupKey]}`
+      const key = purelyByUser ? curr.user_id : `${curr.user_id}-${curr[groupKey]}`
       if (!acc[key]) {
         acc[key] = { ...curr }
       } else {
         acc[key].registration_count += curr.registration_count
+        if (purelyByUser && acc[key][groupKey] !== curr[groupKey] && acc[key][groupKey] !== 'Multiple') {
+          ;(acc[key] as any)[groupKey] = 'Multiple'
+        }
       }
       return acc
     }, {} as Record<string, typeof enrichedData[0]>)
     return Object.values(reduced).sort((a, b) => b.registration_count - a.registration_count)
   }
 
-  const globalData = reduceData(enrichedData, 'aggregated_group_name')
+  const globalData = reduceData(enrichedData, 'aggregated_group_name', true)
 
   const stateData = enrichedData.filter(d => d.aggregated_group_type === 'state')
   const reducedStateData = reduceData(stateData, 'aggregated_group_name')

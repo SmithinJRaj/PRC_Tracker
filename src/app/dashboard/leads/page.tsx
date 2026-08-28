@@ -31,7 +31,7 @@ export default async function LeadsPage() {
     .from('registrations')
     .select(`
       *,
-      regions:region_id (name)
+      groups:group_id (name)
     `)
     .neq('lead_status', 'registered')
     .order('created_at', { ascending: false })
@@ -43,7 +43,7 @@ export default async function LeadsPage() {
         .from('registrations')
         .select(`
           *,
-          regions:region_id (name)
+          groups:group_id (name)
         `)
         .neq('lead_status', 'registered')
         .eq('group_id', profile.group_id)
