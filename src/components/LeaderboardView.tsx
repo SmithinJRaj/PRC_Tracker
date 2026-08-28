@@ -6,8 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 type LeaderboardEntry = {
-  junior_id: string
-  junior_name: string
+  user_id: string
+  user_name: string
   role: string
   registration_count: number
   group_id: string | null
@@ -49,19 +49,36 @@ export default function LeaderboardView({ data, groups }: { data: LeaderboardEnt
     }
   })
 
+  const reduceData = (dataToReduce: typeof enrichedData, groupKey: 'aggregated_group_name' | 'original_group_name') => {
+    const reduced = dataToReduce.reduce((acc, curr) => {
+      const key = `${curr.user_id}-${curr[groupKey]}`
+      if (!acc[key]) {
+        acc[key] = { ...curr }
+      } else {
+        acc[key].registration_count += curr.registration_count
+      }
+      return acc
+    }, {} as Record<string, typeof enrichedData[0]>)
+    return Object.values(reduced).sort((a, b) => b.registration_count - a.registration_count)
+  }
+
+  const globalData = reduceData(enrichedData, 'aggregated_group_name')
+
   const stateData = enrichedData.filter(d => d.aggregated_group_type === 'state')
+  const reducedStateData = reduceData(stateData, 'aggregated_group_name')
   const filteredStateData = selectedStateGroup === 'all' 
-    ? stateData 
-    : stateData.filter(d => 
+    ? reducedStateData 
+    : reducedStateData.filter(d => 
         selectedStateGroup === 'kerala-aggregated'
           ? d.aggregated_group_name === 'Kerala'
           : d.group_id === selectedStateGroup
       )
 
   const districtData = enrichedData.filter(d => d.original_group_type === 'district')
+  const reducedDistrictData = reduceData(districtData, 'original_group_name')
   const filteredDistrictData = selectedDistrictGroup === 'all' 
-    ? districtData 
-    : districtData.filter(d => d.group_id === selectedDistrictGroup)
+    ? reducedDistrictData 
+    : reducedDistrictData.filter(d => d.group_id === selectedDistrictGroup)
 
   return (
     <Tabs defaultValue="global" className="w-full max-w-4xl mx-auto">
@@ -75,7 +92,7 @@ export default function LeaderboardView({ data, groups }: { data: LeaderboardEnt
 
       <TabsContent value="global">
         <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
-          <LeaderboardTable data={enrichedData} groupNameKey="aggregated_group_name" />
+          <LeaderboardTable data={globalData} groupNameKey="aggregated_group_name" />
         </div>
       </TabsContent>
 
@@ -138,12 +155,12 @@ function LeaderboardTable({ data, groupNameKey, hiddenGroup = false }: { data: a
         <TableBody>
           {data.length > 0 ? (
             data.map((entry, index) => (
-              <TableRow key={entry.junior_id} className="hover:bg-gray-50 transition-colors">
+              <TableRow key={`${entry.user_id}-${entry[groupNameKey]}`} className="hover:bg-gray-50 transition-colors">
                 <TableCell className="text-center font-bold text-gray-500">
                   #{index + 1}
                 </TableCell>
                 <TableCell className="font-semibold text-gray-900">
-                  {entry.junior_name}
+                  {entry.user_name || 'Unknown User'}
                 </TableCell>
                 <TableCell>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${
