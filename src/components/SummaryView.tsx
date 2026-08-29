@@ -5,6 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ArrowUp, ArrowDown } from 'lucide-react'
 
 type Registration = {
   id: string
@@ -35,6 +37,20 @@ type Props = {
 }
 
 export default function SummaryView({ registrations, users }: Props) {
+  const [selectedState, setSelectedState] = useState<string>('all')
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('all')
+  const [sortColumn, setSortColumn] = useState<'name' | 'regs' | 'revenue'>('revenue')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+  
+  const handleSort = (column: 'name' | 'regs' | 'revenue') => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortColumn(column)
+      setSortDirection('desc')
+    }
+  }
+
   // Common processing
   // Provide aggregated_group_name and aggregated_group_type for 'Kerala' districts
   const enrichedRegistrations = registrations.map(r => {
@@ -56,16 +72,39 @@ export default function SummaryView({ registrations, users }: Props) {
   })
 
   const renderDashboard = (filterType: 'overall' | 'state' | 'district') => {
-    let filteredRegs = enrichedRegistrations
-    let filteredUsers = enrichedUsers
+    let baseFilteredRegs = enrichedRegistrations
+    let baseFilteredUsers = enrichedUsers
     
     if (filterType === 'state') {
-      filteredRegs = enrichedRegistrations.filter(r => r.aggregated_group_type === 'state')
-      filteredUsers = enrichedUsers.filter(u => u.aggregated_group_type === 'state')
+      baseFilteredRegs = enrichedRegistrations.filter(r => r.aggregated_group_type === 'state')
+      baseFilteredUsers = enrichedUsers.filter(u => u.aggregated_group_type === 'state')
     } else if (filterType === 'district') {
-      filteredRegs = enrichedRegistrations.filter(r => r.groups?.type === 'district')
-      filteredUsers = enrichedUsers.filter(u => u.groups?.type === 'district')
+      baseFilteredRegs = enrichedRegistrations.filter(r => r.groups?.type === 'district')
+      baseFilteredUsers = enrichedUsers.filter(u => u.groups?.type === 'district')
     }
+
+    const availableGroups = new Set<string>()
+    if (filterType !== 'overall') {
+      const groupKey = filterType === 'district' ? (x: any) => x.groups?.name : (x: any) => x.aggregated_group_name
+      baseFilteredUsers.forEach(u => { const n = groupKey(u); if (n) availableGroups.add(n) })
+      baseFilteredRegs.forEach(r => { const n = groupKey(r); if (n) availableGroups.add(n) })
+    }
+    const groupOptions = Array.from(availableGroups).sort()
+
+    let activeGroup = 'all'
+    if (filterType === 'state') activeGroup = selectedState
+    else if (filterType === 'district') activeGroup = selectedDistrict
+
+    let filteredRegs = baseFilteredRegs
+    let filteredUsers = baseFilteredUsers
+
+    if (activeGroup !== 'all') {
+      const groupKey = filterType === 'district' ? (x: any) => x.groups?.name : (x: any) => x.aggregated_group_name
+      filteredRegs = filteredRegs.filter(r => groupKey(r) === activeGroup)
+      filteredUsers = filteredUsers.filter(u => groupKey(u) === activeGroup)
+    }
+
+    const isDrillDown = filterType !== 'overall' && activeGroup !== 'all'
 
     const totalRegistrations = filteredRegs.length
     const totalRevenue = filteredRegs.reduce((sum, r) => sum + (r.reg_fee || 0), 0)
@@ -76,16 +115,19 @@ export default function SummaryView({ registrations, users }: Props) {
     const avgRegsPerUser = numTotalUsers > 0 ? (totalRegistrations / numTotalUsers).toFixed(1) : '0.0'
 
     // Daily Registration Graph
-    // Group by YYYY-MM-DD
-    const dateMap: Record<string, number> = {}
+    const dateMap: Record<string, { count: number, revenue: number }> = {}
     filteredRegs.forEach(r => {
       const date = r.created_at.split('T')[0]
-      dateMap[date] = (dateMap[date] || 0) + 1
+      if (!dateMap[date]) dateMap[date] = { count: 0, revenue: 0 }
+      dateMap[date].count += 1
+      dateMap[date].revenue += (r.reg_fee || 0)
     })
 
     const chartData = Object.keys(dateMap).sort().map(date => ({
       date,
-      count: dateMap[date]
+      count: dateMap[date].count,
+      revenue: dateMap[date].revenue,
+      avgRegs: numTotalUsers > 0 ? Number((dateMap[date].count / numTotalUsers).toFixed(1)) : 0
     }))
 
     // Group Rankings and Charts
@@ -113,72 +155,162 @@ export default function SummaryView({ registrations, users }: Props) {
     const rankings = Object.values(groupMap).map(g => ({
       ...g,
       avgRegs: g.usersCount > 0 ? Number((g.regs / g.usersCount).toFixed(1)) : 0
-    })).sort((a, b) => b.revenue - a.revenue || b.regs - a.regs)
+    })).sort((a, b) => {
+      const valA = a[sortColumn]
+      const valB = b[sortColumn]
+      if (valA < valB) return sortDirection === 'asc' ? -1 : 1
+      if (valA > valB) return sortDirection === 'asc' ? 1 : -1
+      return 0
+    })
 
     return (
       <div className="space-y-8 mt-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">Total Registrations</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900">{totalRegistrations}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">Total Revenue</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-600">₹{totalRevenue.toLocaleString('en-IN')}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">Avg Regs per Active User</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-blue-600">{avgRegsPerUser}</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Daily Registrations</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[350px] w-full pt-4">
-              {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis 
-                      dataKey="date" 
-                      tickFormatter={(str) => {
-                        const d = new Date(str)
-                        return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`
-                      }} 
-                    />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip 
-                      labelFormatter={(label) => new Date(label as string).toLocaleDateString()}
-                      formatter={(value: any) => [value, 'Registrations']}
-                    />
-                    <Line type="monotone" dataKey="count" stroke="#2563eb" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
-                  No data available for graph
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
         {filterType !== 'overall' && (
+          <div className="flex justify-end mb-4">
+            <Select 
+              value={activeGroup} 
+              onValueChange={(val) => filterType === 'state' ? setSelectedState(val || 'all') : setSelectedDistrict(val || 'all')}
+            >
+              <SelectTrigger className="w-[280px]">
+                <SelectValue placeholder={`Select a ${filterType}`} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All {filterType === 'state' ? 'States' : 'Districts'}</SelectItem>
+                {groupOptions.map(g => (
+                  <SelectItem key={g} value={g}>{g}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        {(filterType === 'overall' || isDrillDown) ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">Total Registrations</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-gray-900">{totalRegistrations}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">Total Revenue</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-green-600">₹{totalRevenue.toLocaleString('en-IN')}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">Avg Regs per Active User</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-blue-600">{avgRegsPerUser}</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Daily Registrations</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[250px] w-full pt-4">
+                    {chartData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <XAxis 
+                            dataKey="date" 
+                            tickFormatter={(str) => {
+                              const d = new Date(str)
+                              return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`
+                            }} 
+                          />
+                          <YAxis allowDecimals={false} width={40} />
+                          <Tooltip 
+                            labelFormatter={(label) => new Date(label as string).toLocaleDateString()}
+                            formatter={(value: any) => [value, 'Registrations']}
+                          />
+                          <Line type="monotone" dataKey="count" stroke="#2563eb" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-gray-500">No data</div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Daily Revenue</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[250px] w-full pt-4">
+                    {chartData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <XAxis 
+                            dataKey="date" 
+                            tickFormatter={(str) => {
+                              const d = new Date(str)
+                              return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`
+                            }} 
+                          />
+                          <YAxis tickFormatter={(val) => `₹${val}`} width={60} />
+                          <Tooltip 
+                            labelFormatter={(label) => new Date(label as string).toLocaleDateString()}
+                            formatter={(value: any) => [`₹${value}`, 'Revenue']}
+                          />
+                          <Line type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-gray-500">No data</div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Daily Avg Regs</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[250px] w-full pt-4">
+                    {chartData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <XAxis 
+                            dataKey="date" 
+                            tickFormatter={(str) => {
+                              const d = new Date(str)
+                              return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`
+                            }} 
+                          />
+                          <YAxis width={40} />
+                          <Tooltip 
+                            labelFormatter={(label) => new Date(label as string).toLocaleDateString()}
+                            formatter={(value: any) => [value, 'Avg Registrations']}
+                          />
+                          <Line type="monotone" dataKey="avgRegs" stroke="#9333ea" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-gray-500">No data</div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        ) : (
           <>
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
               <Card>
@@ -261,9 +393,24 @@ export default function SummaryView({ registrations, users }: Props) {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-24 text-center">Rank</TableHead>
-                        <TableHead>Group</TableHead>
-                        <TableHead className="text-right">Total Registrations</TableHead>
-                        <TableHead className="text-right">Total Revenue</TableHead>
+                        <TableHead className="cursor-pointer select-none" onClick={() => handleSort('name')}>
+                          <div className="flex items-center gap-1">
+                            Group
+                            {sortColumn === 'name' && (sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />)}
+                          </div>
+                        </TableHead>
+                        <TableHead className="text-right cursor-pointer select-none" onClick={() => handleSort('regs')}>
+                          <div className="flex items-center justify-end gap-1">
+                            Total Registrations
+                            {sortColumn === 'regs' && (sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />)}
+                          </div>
+                        </TableHead>
+                        <TableHead className="text-right cursor-pointer select-none" onClick={() => handleSort('revenue')}>
+                          <div className="flex items-center justify-end gap-1">
+                            Total Revenue
+                            {sortColumn === 'revenue' && (sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />)}
+                          </div>
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
