@@ -50,6 +50,15 @@ export default async function ManagementDashboard() {
   // Find which group the current senior belongs to
   const seniorGroupId = profile.group_id
 
+  let teamRegistrations: any[] = []
+  if (seniorGroupId) {
+    const { data: regs } = await supabase
+      .from('registrations')
+      .select('registered_by, reg_fee')
+      .eq('group_id', seniorGroupId)
+    teamRegistrations = regs || []
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -92,6 +101,7 @@ export default async function ManagementDashboard() {
               groups={allGroups || []} 
               currentRole={profile.role}
               seniorGroupId={seniorGroupId}
+              teamRegistrations={teamRegistrations}
             />
           )}
         </TabsContent>

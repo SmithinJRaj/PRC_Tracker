@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { UserPlus, UserMinus } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 
 type User = {
   id: string
@@ -22,7 +24,19 @@ type Group = {
   name: string
 }
 
-export default function TeamAssignment({ members, groups, currentRole, seniorGroupId }: { members: User[], groups: Group[], currentRole: string, seniorGroupId?: string }) {
+export default function TeamAssignment({ 
+  members, 
+  groups, 
+  currentRole, 
+  seniorGroupId,
+  teamRegistrations = [] 
+}: { 
+  members: User[], 
+  groups: Group[], 
+  currentRole: string, 
+  seniorGroupId?: string,
+  teamRegistrations?: any[]
+}) {
   const [users, setUsers] = useState<User[]>(members)
   const supabase = createClient()
   const router = useRouter()
@@ -31,10 +45,10 @@ export default function TeamAssignment({ members, groups, currentRole, seniorGro
     const previousUsers = [...users]
     setUsers(users.map(u => u.id === userId ? { ...u, group_id: newGroupId } : u))
 
-    const { error } = await supabase
-      .from('users')
-      .update({ group_id: newGroupId })
-      .eq('id', userId)
+    const { error } = await supabase.rpc('update_user_group', {
+      target_user_id: userId,
+      new_group_id: newGroupId
+    })
 
     if (error) {
       toast.error('Failed to assign group', { description: error.message })
@@ -101,8 +115,65 @@ export default function TeamAssignment({ members, groups, currentRole, seniorGro
   const unassignedJuniors = users.filter(u => u.group_id === null && u.role === 'junior')
   const myTeam = users.filter(u => u.group_id === seniorGroupId && u.role === 'junior')
 
+  const performanceMap: Record<string, { name: string, regs: number, revenue: number }> = {}
+  myTeam.forEach(u => {
+    performanceMap[u.id] = { name: u.full_name, regs: 0, revenue: 0 }
+  })
+
+  teamRegistrations.forEach(r => {
+    if (r.registered_by && performanceMap[r.registered_by]) {
+      performanceMap[r.registered_by].regs += 1
+      performanceMap[r.registered_by].revenue += (Number(r.reg_fee) || 0)
+    }
+  })
+
+  const performanceData = Object.values(performanceMap).sort((a, b) => b.revenue - a.revenue || b.regs - a.regs)
+
   return (
     <div className="space-y-8 mt-8">
+      {/* Performance Dashboard */}
+      {myTeam.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Team Registrations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[250px] w-full pt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={performanceData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                    <YAxis allowDecimals={false} width={40} />
+                    <Tooltip formatter={(value: any) => [value, 'Registrations']} />
+                    <Bar dataKey="regs" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Team Revenue</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[250px] w-full pt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={performanceData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                    <YAxis tickFormatter={(val) => `₹${val}`} width={60} />
+                    <Tooltip formatter={(value: any) => [`₹${value}`, 'Revenue']} />
+                    <Bar dataKey="revenue" fill="#16a34a" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* My Team */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <h2 className="text-xl font-semibold mb-4 text-gray-900">My Team</h2>

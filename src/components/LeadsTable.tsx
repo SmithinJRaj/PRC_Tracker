@@ -145,18 +145,16 @@ export default function LeadsTable({ leads, userId, userGroupId, role }: { leads
             onChange={(e) => setSearch(e.target.value)}
             className="max-w-xs"
           />
-          {canManage && (
-            <div className="relative group">
-              <Button onClick={openCreateModal} className="flex items-center gap-2" disabled={!userGroupId}>
-                <Plus className="w-4 h-4" /> Create Lead
-              </Button>
-              {!userGroupId && (
-                <div className="absolute top-full mt-2 right-0 hidden group-hover:block w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-10 text-center">
-                  You must assign yourself to a Group in the Management tab before creating entries.
-                </div>
-              )}
-            </div>
-          )}
+          <div className="relative group">
+            <Button onClick={openCreateModal} className="flex items-center gap-2" disabled={!userGroupId}>
+              <Plus className="w-4 h-4" /> Create Lead
+            </Button>
+            {!userGroupId && (
+              <div className="absolute top-full mt-2 right-0 hidden group-hover:block w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-10 text-center">
+                You must assign yourself to a Group in the Management tab before creating entries.
+              </div>
+            )}
+          </div>
         </div>
       </div>
       
