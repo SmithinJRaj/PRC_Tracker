@@ -13,7 +13,9 @@ import Modal from './Modal'
 import RegistrationForm from './RegistrationForm'
 import LeadForm from './LeadForm'
 import AlertDialog from './AlertDialog'
-import { Plus, Trash2, Edit, Mail, Phone } from 'lucide-react'
+import { Plus, Trash2, Edit, Mail, Phone, Download, Upload } from 'lucide-react'
+import Papa from 'papaparse'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
 type Lead = {
   id: string
@@ -39,6 +41,8 @@ export default function LeadsTable({ leads, userId, userGroupId, role }: { leads
   const [convertModalOpen, setConvertModalOpen] = useState(false)
   const [leadFormModalOpen, setLeadFormModalOpen] = useState(false)
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false)
+  const [importModalOpen, setImportModalOpen] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   
   const supabase = createClient()
@@ -63,6 +67,22 @@ export default function LeadsTable({ leads, userId, userGroupId, role }: { leads
     } else {
       toast.success('Lead claimed successfully!')
       setData(data.map(l => l.id === leadId ? { ...l, registered_by: userId } : l))
+      await revalidateDashboard()
+      router.refresh()
+    }
+  }
+
+  const handleUnclaim = async (leadId: string) => {
+    const { error } = await supabase
+      .from('registrations')
+      .update({ registered_by: null, lead_status: 'uncontacted' })
+      .eq('id', leadId)
+
+    if (error) {
+      toast.error('Failed to unclaim lead', { description: error.message })
+    } else {
+      toast.success('Lead unclaimed successfully!')
+      setData(data.map(l => l.id === leadId ? { ...l, registered_by: null, lead_status: 'uncontacted' } : l))
       await revalidateDashboard()
       router.refresh()
     }
@@ -134,6 +154,77 @@ export default function LeadsTable({ leads, userId, userGroupId, role }: { leads
     setDeleteAlertOpen(true)
   }
 
+  const handleExportCSV = () => {
+    const csv = Papa.unparse(data.map(l => ({
+      'Attendee Name': l.attendee_name,
+      'College Name': l.college_name || '',
+      'Phone': l.phone || '',
+      'Email': l.attendee_email || '',
+      'Event': l.event || '',
+      'Status': l.lead_status,
+      'Registered By': l.registered_by === userId ? 'Me' : l.registered_by ? 'Others' : 'Unclaimed',
+      'Notes': l.notes || ''
+    })))
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'leads_export.csv')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsImporting(true)
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const rows = results.data as any[]
+        const requiredHeaders = ['attendee_name', 'college_name', 'phone', 'attendee_email']
+        const hasAllHeaders = requiredHeaders.every(h => results.meta.fields?.includes(h))
+
+        if (!hasAllHeaders) {
+          toast.error('Invalid CSV format', { description: 'Missing required headers.' })
+          setIsImporting(false)
+          return
+        }
+
+        const payload = rows.map(r => ({
+          attendee_name: r.attendee_name,
+          college_name: r.college_name || null,
+          phone: r.phone || null,
+          attendee_email: r.attendee_email || null,
+          lead_status: 'uncontacted',
+          verification_status: 'pending',
+          group_id: userGroupId,
+          registered_by: null
+        }))
+
+        const { error } = await supabase.from('registrations').insert(payload)
+
+        if (error) {
+          toast.error('Failed to import CSV', { description: error.message })
+        } else {
+          toast.success('Leads imported successfully!')
+          setImportModalOpen(false)
+          await revalidateDashboard()
+          router.refresh()
+        }
+        setIsImporting(false)
+      },
+      error: (error) => {
+        toast.error('Failed to parse CSV', { description: error.message })
+        setIsImporting(false)
+      }
+    })
+    e.target.value = ''
+  }
+
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
@@ -145,15 +236,30 @@ export default function LeadsTable({ leads, userId, userGroupId, role }: { leads
             onChange={(e) => setSearch(e.target.value)}
             className="max-w-xs"
           />
-          <div className="relative group">
-            <Button onClick={openCreateModal} className="flex items-center gap-2" disabled={!userGroupId}>
-              <Plus className="w-4 h-4" /> Create Lead
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setImportModalOpen(true)}>
+              <Upload className="w-4 h-4 mr-2" />
+              Import CSV
             </Button>
-            {!userGroupId && (
-              <div className="absolute top-full mt-2 right-0 hidden group-hover:block w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-10 text-center">
-                You must assign yourself to a Group in the Management tab before creating entries.
-              </div>
-            )}
+            <Button variant="outline" onClick={handleExportCSV}>
+              <Download className="w-4 h-4 mr-2" />
+              Export CSV
+            </Button>
+            <div className="relative group">
+              <Button 
+                onClick={openCreateModal}
+                disabled={!userGroupId}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New Lead
+              </Button>
+              {!userGroupId && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-xs text-center rounded-md shadow-lg z-50">
+                  You must be assigned to a Group in the Management tab to create leads.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -211,9 +317,14 @@ export default function LeadsTable({ leads, userId, userGroupId, role }: { leads
                 <TableCell className="text-right">
                   <div className="flex justify-end items-center gap-2">
                     {lead.registered_by === userId ? (
-                      <Button variant="default" size="sm" onClick={() => openConvertModal(lead)}>
-                        Convert
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button variant="default" size="sm" onClick={() => openConvertModal(lead)}>
+                          Convert
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleUnclaim(lead.id)} className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200">
+                          Unclaim
+                        </Button>
+                      </div>
                     ) : (
                       <Button variant="outline" size="sm" onClick={() => handleClaim(lead.id)}>
                         Claim

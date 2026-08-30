@@ -31,12 +31,15 @@ type User = {
   } | null
 }
 
-type Props = {
-  registrations: Registration[]
-  users: User[]
-}
-
-export default function SummaryView({ registrations, users }: Props) {
+export default function SummaryView({ 
+  registrations, 
+  users, 
+  allowedTabs = ['overall', 'state', 'district'] 
+}: { 
+  registrations: Registration[], 
+  users: User[],
+  allowedTabs?: string[]
+}) {
   const [selectedState, setSelectedState] = useState<string>('all')
   const [selectedDistrict, setSelectedDistrict] = useState<string>('all')
   const [sortColumn, setSortColumn] = useState<'name' | 'regs' | 'revenue'>('revenue')
@@ -438,25 +441,35 @@ export default function SummaryView({ registrations, users }: Props) {
     )
   }
 
+  const tabCols = allowedTabs.length === 1 ? 'grid-cols-1' : allowedTabs.length === 2 ? 'grid-cols-2' : 'grid-cols-3'
+
   return (
-    <Tabs defaultValue="overall" className="w-full">
+    <Tabs defaultValue={allowedTabs[0]} className="w-full">
       <div className="flex justify-center mb-6">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="overall">Overall</TabsTrigger>
-          <TabsTrigger value="state">State-wise</TabsTrigger>
-          <TabsTrigger value="district">District-wise</TabsTrigger>
+        <TabsList className={`grid w-full max-w-md ${tabCols}`}>
+          {allowedTabs.includes('overall') && <TabsTrigger value="overall">Overall</TabsTrigger>}
+          {allowedTabs.includes('state') && <TabsTrigger value="state">State-wise</TabsTrigger>}
+          {allowedTabs.includes('district') && <TabsTrigger value="district">District-wise</TabsTrigger>}
         </TabsList>
       </div>
       
-      <TabsContent value="overall">
-        {renderDashboard('overall')}
-      </TabsContent>
-      <TabsContent value="state">
-        {renderDashboard('state')}
-      </TabsContent>
-      <TabsContent value="district">
-        {renderDashboard('district')}
-      </TabsContent>
+      {allowedTabs.includes('overall') && (
+        <TabsContent value="overall">
+          {renderDashboard('overall')}
+        </TabsContent>
+      )}
+      
+      {allowedTabs.includes('state') && (
+        <TabsContent value="state">
+          {renderDashboard('state')}
+        </TabsContent>
+      )}
+      
+      {allowedTabs.includes('district') && (
+        <TabsContent value="district">
+          {renderDashboard('district')}
+        </TabsContent>
+      )}
     </Tabs>
   )
 }

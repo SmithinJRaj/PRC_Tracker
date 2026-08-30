@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FormInput, TableProperties, Users, Trophy, LogOut, PhoneCall, Menu, LineChart } from 'lucide-react'
+import { FormInput, TableProperties, Users, Trophy, LogOut, PhoneCall, Menu, LineChart, Settings, Contact, ClipboardCheck } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -36,9 +36,21 @@ export default function SidebarNav({ role, fullName }: SidebarNavProps) {
       show: ['senior', 'admin'].includes(role),
     },
     {
+      name: 'Attendance',
+      href: '/dashboard/attendance',
+      icon: ClipboardCheck,
+      show: ['senior', 'admin'].includes(role),
+    },
+    {
+      name: 'Team Directory',
+      href: '/dashboard/directory',
+      icon: Contact,
+      show: true,
+    },
+    {
       name: 'Management',
       href: '/dashboard/management',
-      icon: Users,
+      icon: Settings,
       show: ['senior', 'admin'].includes(role),
     },
     {

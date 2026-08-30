@@ -93,7 +93,11 @@ export default function RegistrationForm({ userId, userGroupId, initialData, isC
       // Update existing
       const { error } = await supabase.from('registrations').update(data).eq('id', initialData.id)
       if (error) {
-        toast.error('Failed to update', { description: error.message })
+        if (error.code === '23505') {
+          toast.error('This Tathva ID is already registered to another user.')
+        } else {
+          toast.error('Failed to update', { description: error.message })
+        }
       } else {
         toast.success(isConvert ? 'Lead converted to registration!' : 'Registration updated!')
         await revalidateDashboard()
@@ -104,7 +108,11 @@ export default function RegistrationForm({ userId, userGroupId, initialData, isC
       const insertData = { ...data, group_id: userGroupId }
       const { error } = await supabase.from('registrations').insert(insertData)
       if (error) {
-        toast.error('Failed to register', { description: error.message })
+        if (error.code === '23505') {
+          toast.error('This Tathva ID is already registered to another user.')
+        } else {
+          toast.error('Failed to register', { description: error.message })
+        }
       } else {
         toast.success('Registration added successfully!')
         ;(e.target as HTMLFormElement).reset()
