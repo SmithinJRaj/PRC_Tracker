@@ -73,6 +73,43 @@ export default function AttendanceView({ juniors, presentUserIds: initialPresent
     })
   }
 
+  const handleUnmark = async (userId: string) => {
+    // Optimistic Update — remove from present
+    setPresentIds(prev => {
+      const next = new Set(prev)
+      next.delete(userId)
+      return next
+    })
+    setLoadingIds(prev => {
+      const next = new Set(prev)
+      next.add(userId)
+      return next
+    })
+
+    const { error } = await supabase
+      .from('attendance')
+      .delete()
+      .match({ user_id: userId, date: todayDateString })
+
+    if (error) {
+      toast.error('Failed to unmark attendance', { description: error.message })
+      // Revert optimistic update
+      setPresentIds(prev => {
+        const next = new Set(prev)
+        next.add(userId)
+        return next
+      })
+    } else {
+      toast.success('Attendance unmarked.')
+    }
+
+    setLoadingIds(prev => {
+      const next = new Set(prev)
+      next.delete(userId)
+      return next
+    })
+  }
+
   return (
     <div className="space-y-6">
       <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
@@ -106,10 +143,15 @@ export default function AttendanceView({ juniors, presentUserIds: initialPresent
 
                 <div className="shrink-0">
                   {isPresent ? (
-                    <div className="flex items-center gap-2 bg-green-100 text-green-700 px-4 py-3 rounded-xl font-bold text-lg border border-green-300">
+                    <button
+                      onClick={() => handleUnmark(junior.id)}
+                      disabled={isLoading}
+                      className="flex items-center gap-2 bg-green-100 text-green-700 px-4 py-3 rounded-xl font-bold text-lg border border-green-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-colors cursor-pointer"
+                      title="Click to unmark"
+                    >
                       <CheckCircle2 className="w-6 h-6" />
-                      Present
-                    </div>
+                      {isLoading ? 'Updating...' : 'Present'}
+                    </button>
                   ) : (
                     <Button 
                       size="lg"

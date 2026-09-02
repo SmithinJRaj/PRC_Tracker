@@ -74,6 +74,21 @@ export default async function SummaryPage() {
 
   const { data: users } = await userQuery
 
+  // Fetch attendance data
+  let attendanceQuery = supabase
+    .from('attendance')
+    .select('user_id, date')
+
+  if (allowedGroupIds) {
+    // Only fetch attendance for users within allowed groups
+    const userIds = users?.map(u => u.id) || []
+    if (userIds.length > 0) {
+      attendanceQuery = attendanceQuery.in('user_id', userIds)
+    }
+  }
+
+  const { data: attendanceData } = await attendanceQuery
+
   return (
     <div className="space-y-8">
       <div>
@@ -85,6 +100,7 @@ export default async function SummaryPage() {
         registrations={registrations as any || []} 
         users={users as any || []} 
         allowedTabs={allowedTabs}
+        attendanceData={attendanceData as any || []}
       />
     </div>
   )

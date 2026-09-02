@@ -34,11 +34,13 @@ type User = {
 export default function SummaryView({ 
   registrations, 
   users, 
-  allowedTabs = ['overall', 'state', 'district'] 
+  allowedTabs = ['overall', 'state', 'district'],
+  attendanceData = []
 }: { 
   registrations: Registration[], 
   users: User[],
-  allowedTabs?: string[]
+  allowedTabs?: string[],
+  attendanceData?: { user_id: string, date: string }[]
 }) {
   const [selectedState, setSelectedState] = useState<string>('all')
   const [selectedDistrict, setSelectedDistrict] = useState<string>('all')
@@ -118,19 +120,27 @@ export default function SummaryView({
     const avgRegsPerUser = numTotalUsers > 0 ? (totalRegistrations / numTotalUsers).toFixed(1) : '0.0'
 
     // Daily Registration Graph
-    const dateMap: Record<string, { count: number, revenue: number }> = {}
+    const dateMap: Record<string, { count: number, revenue: number, attendance: number }> = {}
     filteredRegs.forEach(r => {
       const date = r.created_at.split('T')[0]
-      if (!dateMap[date]) dateMap[date] = { count: 0, revenue: 0 }
+      if (!dateMap[date]) dateMap[date] = { count: 0, revenue: 0, attendance: 0 }
       dateMap[date].count += 1
       dateMap[date].revenue += (r.reg_fee || 0)
+    })
+
+    // Aggregate attendance into dateMap
+    attendanceData.forEach(a => {
+      const date = a.date
+      if (!dateMap[date]) dateMap[date] = { count: 0, revenue: 0, attendance: 0 }
+      dateMap[date].attendance += 1
     })
 
     const chartData = Object.keys(dateMap).sort().map(date => ({
       date,
       count: dateMap[date].count,
       revenue: dateMap[date].revenue,
-      avgRegs: numTotalUsers > 0 ? Number((dateMap[date].count / numTotalUsers).toFixed(1)) : 0
+      avgRegs: numTotalUsers > 0 ? Number((dateMap[date].count / numTotalUsers).toFixed(1)) : 0,
+      attendance: dateMap[date].attendance
     }))
 
     // Group Rankings and Charts
@@ -215,7 +225,7 @@ export default function SummaryView({
               </Card>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Daily Registrations</CardTitle>
@@ -303,6 +313,38 @@ export default function SummaryView({
                             formatter={(value: any) => [value, 'Avg Registrations']}
                           />
                           <Line type="monotone" dataKey="avgRegs" stroke="#9333ea" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-gray-500">No data</div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Daily Attendance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[250px] w-full pt-4">
+                    {chartData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <XAxis 
+                            dataKey="date" 
+                            tickFormatter={(str) => {
+                              const d = new Date(str)
+                              return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`
+                            }} 
+                          />
+                          <YAxis allowDecimals={false} width={40} />
+                          <Tooltip 
+                            labelFormatter={(label) => new Date(label as string).toLocaleDateString()}
+                            formatter={(value: any) => [value, 'Present']}
+                          />
+                          <Line type="monotone" dataKey="attendance" stroke="#ea580c" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                         </LineChart>
                       </ResponsiveContainer>
                     ) : (

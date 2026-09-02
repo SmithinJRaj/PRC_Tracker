@@ -80,6 +80,17 @@ export default async function DirectoryPage() {
     teamRegistrations = regs || []
   }
 
+  // Fetch attendance data for juniors if admin/senior
+  let teamAttendance: any[] = []
+  if (profile?.role !== 'junior') {
+    const juniorIds = (users || []).filter((u: any) => u.role === 'junior').map((u: any) => u.id)
+    if (juniorIds.length > 0) {
+      let attQuery = supabase.from('attendance').select('user_id, date').in('user_id', juniorIds)
+      const { data: att } = await attQuery
+      teamAttendance = att || []
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -92,6 +103,7 @@ export default async function DirectoryPage() {
         groups={allGroups as any || []}
         currentRole={profile?.role || 'junior'}
         teamRegistrations={teamRegistrations}
+        teamAttendance={teamAttendance}
       />
     </div>
   )

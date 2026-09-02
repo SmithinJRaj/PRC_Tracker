@@ -71,6 +71,16 @@ export default async function ManagementDashboard() {
     teamRegistrations = regs || []
   }
 
+  // Fetch attendance data for juniors in the team
+  let teamAttendance: any[] = []
+  if (seniorGroupIds.length > 0) {
+    const juniorIds = (allUsers || []).filter(u => u.role === 'junior' && u.group_id && seniorGroupIds.includes(u.group_id)).map(u => u.id)
+    if (juniorIds.length > 0) {
+      const { data: att } = await supabase.from('attendance').select('user_id, date').in('user_id', juniorIds)
+      teamAttendance = att || []
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -114,6 +124,7 @@ export default async function ManagementDashboard() {
               currentRole={profile.role}
               seniorGroupIds={seniorGroupIds}
               teamRegistrations={teamRegistrations}
+              teamAttendance={teamAttendance}
             />
           )}
         </TabsContent>

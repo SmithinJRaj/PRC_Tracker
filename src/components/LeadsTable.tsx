@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { revalidateDashboard } from '@/app/actions'
@@ -44,6 +44,7 @@ export default function LeadsTable({ leads, userId, userGroupId, role }: { leads
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   const supabase = createClient()
   const router = useRouter()
@@ -241,6 +242,13 @@ export default function LeadsTable({ leads, userId, userGroupId, role }: { leads
               <Upload className="w-4 h-4 mr-2" />
               Import CSV
             </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={handleImportCSV}
+            />
             <Button variant="outline" onClick={handleExportCSV}>
               <Download className="w-4 h-4 mr-2" />
               Export CSV
@@ -401,6 +409,38 @@ export default function LeadsTable({ leads, userId, userGroupId, role }: { leads
         confirmText="Delete"
         cancelText="Cancel"
       />
+
+      <Dialog open={importModalOpen} onOpenChange={setImportModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import Leads from CSV</DialogTitle>
+            <DialogDescription>
+              Upload a CSV file to bulk import leads into the system.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 bg-gray-50 border rounded-md">
+            <p className="text-sm font-semibold text-gray-700 mb-2">Required exact headers:</p>
+            <ul className="list-disc pl-5 text-sm text-gray-600 font-mono space-y-1">
+              <li>attendee_name</li>
+              <li>college_name</li>
+              <li>phone</li>
+              <li>attendee_email</li>
+            </ul>
+          </div>
+          <div className="mt-4 flex flex-col gap-3">
+            <Button
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isImporting}
+              className="w-full h-12"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              {isImporting ? 'Importing...' : 'Choose CSV File'}
+            </Button>
+            {isImporting && <p className="text-sm text-blue-600 text-center">Processing your file...</p>}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

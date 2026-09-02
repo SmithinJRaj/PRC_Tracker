@@ -31,13 +31,15 @@ export default function TeamAssignment({
   groups, 
   currentRole, 
   seniorGroupIds = [],
-  teamRegistrations = [] 
+  teamRegistrations = [],
+  teamAttendance = []
 }: { 
   members: User[], 
   groups: Group[], 
   currentRole: string, 
   seniorGroupIds?: string[],
-  teamRegistrations?: any[]
+  teamRegistrations?: any[],
+  teamAttendance?: { user_id: string, date: string }[]
 }) {
   const [users, setUsers] = useState<User[]>(members)
   const [selectedJuniorId, setSelectedJuniorId] = useState<string | null>(null)
@@ -142,16 +144,26 @@ export default function TeamAssignment({
   let drillDownData: any[] = []
   
   if (selectedJuniorId) {
-    const dateMap: Record<string, { date: string; regs: number; revenue: number }> = {}
+    const dateMap: Record<string, { date: string; regs: number; revenue: number; present: number }> = {}
     teamRegistrations.filter(r => r.registered_by === selectedJuniorId).forEach(r => {
       if (!r.created_at) return
       const dateObj = new Date(r.created_at)
       const date = dateObj.toLocaleDateString('en-GB') // DD/MM/YYYY
       if (!dateMap[date]) {
-        dateMap[date] = { date, regs: 0, revenue: 0 }
+        dateMap[date] = { date, regs: 0, revenue: 0, present: 0 }
       }
       dateMap[date].regs += 1
       dateMap[date].revenue += (Number(r.reg_fee) || 0)
+    })
+
+    // Add attendance data for this junior
+    teamAttendance.filter(a => a.user_id === selectedJuniorId).forEach(a => {
+      const dateObj = new Date(a.date)
+      const date = dateObj.toLocaleDateString('en-GB')
+      if (!dateMap[date]) {
+        dateMap[date] = { date, regs: 0, revenue: 0, present: 0 }
+      }
+      dateMap[date].present = 1
     })
     
     drillDownData = Object.values(dateMap).sort((a, b) => {
@@ -251,7 +263,7 @@ export default function TeamAssignment({
       )}
 
       <Dialog open={!!selectedJuniorId} onOpenChange={(open) => !open && setSelectedJuniorId(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl lg:max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{selectedJunior?.full_name}&apos;s Daily Trend</DialogTitle>
             <DialogDescription>
@@ -283,6 +295,19 @@ export default function TeamAssignment({
                   <Tooltip formatter={(value: any) => [`₹${value}`, 'Revenue']} />
                   <Line type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="h-[300px] w-full md:col-span-2">
+              <h3 className="text-sm font-semibold mb-2 text-center">Daily Attendance</h3>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={drillDownData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                  <YAxis allowDecimals={false} domain={[0, 1]} ticks={[0, 1]} width={40} tickFormatter={(val) => val === 1 ? 'Yes' : 'No'} />
+                  <Tooltip formatter={(value: any) => [value === 1 ? 'Present' : 'Absent', 'Attendance']} />
+                  <Bar dataKey="present" fill="#ea580c" radius={[4, 4, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
