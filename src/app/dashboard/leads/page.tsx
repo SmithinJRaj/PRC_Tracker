@@ -12,12 +12,32 @@ export default async function LeadsPage() {
 
   const { data: profile } = await supabase
     .from('users')
-    .select('role, group_id')
+    .select('role, group_id, groups:group_id (name, type)')
     .eq('id', user.id)
     .single()
 
   if (!profile) {
     redirect('/login')
+  }
+
+  let allowedGroupIds: string[] = []
+  if (profile.role === 'admin') {
+    // Admin has no group constraints
+  } else if (profile.role === 'senior') {
+    const groupId = profile.group_id
+    // @ts-ignore
+    const groupType = profile.groups?.type
+    
+    if (groupType === 'state') {
+      const { data: childGroups } = await supabase.from('groups').select('id').eq('parent_group_id', groupId)
+      allowedGroupIds = [groupId, ...(childGroups?.map(g => g.id) || [])]
+    } else if (groupId) {
+      allowedGroupIds = [groupId]
+    }
+  } else if (profile.role === 'junior') {
+    if (profile.group_id) {
+      allowedGroupIds = [profile.group_id]
+    }
   }
 
   // Fetch leads
@@ -53,8 +73,8 @@ export default async function LeadsPage() {
     console.error('Error fetching leads:', error)
   }
 
-  // Fetch users for mapping in Team Claims
-  const { data: users } = await supabase.from('users').select('id, full_name')
+  // Fetch users for mapping in Team Claims and Assignment Dropdown
+  const { data: users } = await supabase.from('users').select('id, full_name, role, group_id')
 
   return (
     <div className="space-y-8">
@@ -63,7 +83,7 @@ export default async function LeadsPage() {
         <p className="mt-2 text-gray-600">Track and convert prospective attendees.</p>
       </div>
 
-      <LeadsTable leads={leads || []} userId={user.id} userGroupId={profile.group_id || null} role={profile.role} users={users || []} />
+      <LeadsTable leads={leads || []} userId={user.id} userGroupId={profile.group_id || null} role={profile.role} users={users || []} allowedGroupIds={allowedGroupIds} />
     </div>
   )
 }

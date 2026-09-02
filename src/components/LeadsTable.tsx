@@ -13,7 +13,7 @@ import Modal from './Modal'
 import RegistrationForm from './RegistrationForm'
 import LeadForm from './LeadForm'
 import AlertDialog from './AlertDialog'
-import { Plus, Trash2, Edit, Mail, Phone, Download, Upload } from 'lucide-react'
+import { Plus, Trash2, Edit, Mail, Phone, Download, Upload, UserPlus } from 'lucide-react'
 import Papa from 'papaparse'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
@@ -34,17 +34,20 @@ type Lead = {
   groups: {
     name: string
   } | null
+  is_force_assigned: boolean
 }
 
-export default function LeadsTable({ leads, userId, userGroupId, role, users = [] }: { leads: Lead[], userId: string, userGroupId: string | null, role: string, users?: {id: string, full_name: string}[] }) {
+export default function LeadsTable({ leads, userId, userGroupId, role, users = [], allowedGroupIds = [] }: { leads: Lead[], userId: string, userGroupId: string | null, role: string, users?: {id: string, full_name: string, role?: string, group_id?: string | null}[], allowedGroupIds?: string[] }) {
   const [data, setData] = useState<Lead[]>(leads)
   const [search, setSearch] = useState('')
   const [convertModalOpen, setConvertModalOpen] = useState(false)
   const [leadFormModalOpen, setLeadFormModalOpen] = useState(false)
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false)
   const [importModalOpen, setImportModalOpen] = useState(false)
+  const [assignModalOpen, setAssignModalOpen] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
+  const [selectedJuniorForAssign, setSelectedJuniorForAssign] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   const supabase = createClient()
@@ -63,6 +66,34 @@ export default function LeadsTable({ leads, userId, userGroupId, role, users = [
   const teamLeads = filteredData.filter(l => l.registered_by !== null && l.registered_by !== userId)
   
   const userMap = Object.fromEntries(users.map(u => [u.id, u.full_name]))
+  
+  const manageableJuniors = users.filter(u => u.role === 'junior' && u.group_id && (role === 'admin' || allowedGroupIds.includes(u.group_id)))
+
+  const handleAssign = async () => {
+    if (!selectedLead || !selectedJuniorForAssign) return
+
+    const { error } = await supabase
+      .from('registrations')
+      .update({ registered_by: selectedJuniorForAssign, is_force_assigned: true })
+      .eq('id', selectedLead.id)
+
+    if (error) {
+      toast.error('Failed to assign lead', { description: error.message })
+    } else {
+      toast.success('Lead assigned successfully!')
+      setData(data.map(l => l.id === selectedLead.id ? { ...l, registered_by: selectedJuniorForAssign, is_force_assigned: true } : l))
+      setAssignModalOpen(false)
+      setSelectedJuniorForAssign('')
+      await revalidateDashboard()
+      router.refresh()
+    }
+  }
+
+  const openAssignModal = (lead: Lead) => {
+    setSelectedLead(lead)
+    setSelectedJuniorForAssign('')
+    setAssignModalOpen(true)
+  }
 
   const handleClaim = async (leadId: string) => {
     const { error } = await supabase
@@ -299,14 +330,34 @@ export default function LeadsTable({ leads, userId, userGroupId, role, users = [
                       <Button variant="default" size="sm" onClick={() => openConvertModal(lead)}>
                         Convert
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleUnclaim(lead.id)} className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200">
-                        Unclaim
-                      </Button>
+                      <div className="relative group/unclaim">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleUnclaim(lead.id)} 
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 disabled:opacity-50"
+                          disabled={lead.is_force_assigned && role === 'junior'}
+                        >
+                          Unclaim
+                        </Button>
+                        {lead.is_force_assigned && role === 'junior' && (
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/unclaim:block w-32 p-2 bg-gray-900 text-white text-xs text-center rounded-md shadow-lg z-50 whitespace-nowrap">
+                            Assigned by Manager
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ) : (
-                    <Button variant="outline" size="sm" onClick={() => handleClaim(lead.id)} disabled={lead.registered_by !== null}>
-                      Claim
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleClaim(lead.id)} disabled={lead.registered_by !== null}>
+                        Claim
+                      </Button>
+                      {canManage && (viewContext === 'available' || viewContext === 'team') && (
+                        <Button variant="outline" size="sm" onClick={() => openAssignModal(lead)} className="px-2" title="Assign to Junior">
+                          <UserPlus className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   )}
                   
                   {canManage && (
@@ -479,6 +530,40 @@ export default function LeadsTable({ leads, userId, userGroupId, role, users = [
               {isImporting ? 'Importing...' : 'Choose CSV File'}
             </Button>
             {isImporting && <p className="text-sm text-blue-600 text-center">Processing your file...</p>}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={assignModalOpen} onOpenChange={setAssignModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Lead</DialogTitle>
+            <DialogDescription>
+              Force-assign this lead to a junior in your team.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <Select value={selectedJuniorForAssign} onValueChange={(val) => setSelectedJuniorForAssign(val || '')}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a Junior" />
+              </SelectTrigger>
+              <SelectContent>
+                {manageableJuniors.length > 0 ? (
+                  manageableJuniors.map(j => (
+                    <SelectItem key={j.id} value={j.id}>{j.full_name}</SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="none" disabled>No eligible juniors found</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+            <Button 
+              onClick={handleAssign} 
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={!selectedJuniorForAssign || selectedJuniorForAssign === 'none'}
+            >
+              Confirm Assignment
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
