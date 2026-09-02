@@ -15,6 +15,7 @@ import LeadForm from './LeadForm'
 import AlertDialog from './AlertDialog'
 import { Plus, Trash2, Edit, Mail, Phone, Download, Upload } from 'lucide-react'
 import Papa from 'papaparse'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
 type Lead = {
@@ -35,7 +36,7 @@ type Lead = {
   } | null
 }
 
-export default function LeadsTable({ leads, userId, userGroupId, role }: { leads: Lead[], userId: string, userGroupId: string | null, role: string }) {
+export default function LeadsTable({ leads, userId, userGroupId, role, users = [] }: { leads: Lead[], userId: string, userGroupId: string | null, role: string, users?: {id: string, full_name: string}[] }) {
   const [data, setData] = useState<Lead[]>(leads)
   const [search, setSearch] = useState('')
   const [convertModalOpen, setConvertModalOpen] = useState(false)
@@ -56,6 +57,12 @@ export default function LeadsTable({ leads, userId, userGroupId, role }: { leads
     (l.phone || '').replace(/\s/g, '').includes(search.replace(/\s/g, '')) ||
     (l.attendee_email || '').toLowerCase().includes(search.toLowerCase())
   )
+
+  const availableLeads = filteredData.filter(l => l.registered_by === null)
+  const myLeads = filteredData.filter(l => l.registered_by === userId)
+  const teamLeads = filteredData.filter(l => l.registered_by !== null && l.registered_by !== userId)
+  
+  const userMap = Object.fromEntries(users.map(u => [u.id, u.full_name]))
 
   const handleClaim = async (leadId: string) => {
     const { error } = await supabase
@@ -226,6 +233,118 @@ export default function LeadsTable({ leads, userId, userGroupId, role }: { leads
     e.target.value = ''
   }
 
+  const renderTable = (leadsToRender: Lead[], viewContext: 'available' | 'my' | 'team') => (
+    <div className="rounded-md border overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Attendee Name</TableHead>
+            <TableHead>Contact</TableHead>
+            <TableHead>Region</TableHead>
+            {viewContext === 'team' && <TableHead>Claimed By</TableHead>}
+            <TableHead>Status</TableHead>
+            <TableHead className="w-[300px]">Notes</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {leadsToRender.map((lead) => (
+            <TableRow key={lead.id}>
+              <TableCell className="font-medium">{lead.attendee_name}</TableCell>
+              <TableCell>
+                <div className="flex flex-col space-y-1 text-sm text-gray-600">
+                  {lead.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3 text-gray-400" />{lead.phone}</span>}
+                  {lead.attendee_email && <span className="flex items-center gap-1"><Mail className="w-3 h-3 text-gray-400" />{lead.attendee_email}</span>}
+                  {!lead.phone && !lead.attendee_email && <span className="text-gray-400 italic">None</span>}
+                </div>
+              </TableCell>
+              <TableCell>{lead.groups?.name || 'Unknown'}</TableCell>
+              {viewContext === 'team' && (
+                <TableCell>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {lead.registered_by ? (userMap[lead.registered_by] || 'Unknown User') : 'None'}
+                  </span>
+                </TableCell>
+              )}
+              <TableCell>
+                <Select 
+                  value={lead.lead_status} 
+                  onValueChange={(val) => handleStatusChange(lead.id, val || "uncontacted")}
+                  disabled={lead.registered_by !== userId && !canManage}
+                >
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="uncontacted">Uncontacted</SelectItem>
+                    <SelectItem value="follow_up">Follow Up</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </TableCell>
+              <TableCell>
+                <textarea 
+                  className="w-full text-sm p-2 border rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  defaultValue={lead.notes || ''}
+                  placeholder="Add notes..."
+                  rows={2}
+                  disabled={lead.registered_by !== userId && !canManage}
+                  onBlur={(e) => handleNotesChange(lead.id, e.target.value)}
+                />
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end items-center gap-2">
+                  {lead.registered_by === userId ? (
+                    <div className="flex gap-2">
+                      <Button variant="default" size="sm" onClick={() => openConvertModal(lead)}>
+                        Convert
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleUnclaim(lead.id)} className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200">
+                        Unclaim
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button variant="outline" size="sm" onClick={() => handleClaim(lead.id)} disabled={lead.registered_by !== null}>
+                      Claim
+                    </Button>
+                  )}
+                  
+                  {canManage && (
+                    <div className="flex items-center gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 text-gray-500 hover:text-blue-600"
+                        onClick={() => openEditModal(lead)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 text-gray-500 hover:text-red-600"
+                        onClick={() => openDeleteAlert(lead)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+          {leadsToRender.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={viewContext === 'team' ? 7 : 6} className="text-center py-8 text-gray-500">
+                No active leads found in this view.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  )
+
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
@@ -272,107 +391,29 @@ export default function LeadsTable({ leads, userId, userGroupId, role }: { leads
         </div>
       </div>
       
-      <div className="rounded-md border overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Attendee Name</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>Region</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-[300px]">Notes</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredData.map((lead) => (
-              <TableRow key={lead.id}>
-                <TableCell className="font-medium">{lead.attendee_name}</TableCell>
-                <TableCell>
-                  <div className="flex flex-col space-y-1 text-sm text-gray-600">
-                    {lead.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3 text-gray-400" />{lead.phone}</span>}
-                    {lead.attendee_email && <span className="flex items-center gap-1"><Mail className="w-3 h-3 text-gray-400" />{lead.attendee_email}</span>}
-                    {!lead.phone && !lead.attendee_email && <span className="text-gray-400 italic">None</span>}
-                  </div>
-                </TableCell>
-                <TableCell>{lead.groups?.name || 'Unknown'}</TableCell>
-                <TableCell>
-                  <Select 
-                    value={lead.lead_status} 
-                    onValueChange={(val) => handleStatusChange(lead.id, val || "uncontacted")}
-                    disabled={lead.registered_by !== userId && !canManage}
-                  >
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="uncontacted">Uncontacted</SelectItem>
-                      <SelectItem value="follow_up">Follow Up</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  <textarea 
-                    className="w-full text-sm p-2 border rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    defaultValue={lead.notes || ''}
-                    placeholder="Add notes..."
-                    rows={2}
-                    disabled={lead.registered_by !== userId && !canManage}
-                    onBlur={(e) => handleNotesChange(lead.id, e.target.value)}
-                  />
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end items-center gap-2">
-                    {lead.registered_by === userId ? (
-                      <div className="flex gap-2">
-                        <Button variant="default" size="sm" onClick={() => openConvertModal(lead)}>
-                          Convert
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleUnclaim(lead.id)} className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200">
-                          Unclaim
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button variant="outline" size="sm" onClick={() => handleClaim(lead.id)}>
-                        Claim
-                      </Button>
-                    )}
-                    
-                    {canManage && (
-                      <div className="flex items-center gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 text-gray-500 hover:text-blue-600"
-                          onClick={() => openEditModal(lead)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 text-gray-500 hover:text-red-600"
-                          onClick={() => openDeleteAlert(lead)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-            {filteredData.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                  No active leads found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <Tabs defaultValue="available" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="available">Available Pool ({availableLeads.length})</TabsTrigger>
+          <TabsTrigger value="my">My Workspace ({myLeads.length})</TabsTrigger>
+          {(role === 'admin' || role === 'senior') && (
+            <TabsTrigger value="team">Team Claims ({teamLeads.length})</TabsTrigger>
+          )}
+        </TabsList>
+        
+        <TabsContent value="available">
+          {renderTable(availableLeads, 'available')}
+        </TabsContent>
+        
+        <TabsContent value="my">
+          {renderTable(myLeads, 'my')}
+        </TabsContent>
+        
+        {(role === 'admin' || role === 'senior') && (
+          <TabsContent value="team">
+            {renderTable(teamLeads, 'team')}
+          </TabsContent>
+        )}
+      </Tabs>
 
       <Modal isOpen={convertModalOpen} onClose={() => setConvertModalOpen(false)}>
         {selectedLead && (

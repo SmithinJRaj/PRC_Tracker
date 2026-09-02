@@ -53,6 +53,9 @@ export default async function LeadsPage() {
     console.error('Error fetching leads:', error)
   }
 
+  // Fetch users for mapping in Team Claims
+  const { data: users } = await supabase.from('users').select('id, full_name')
+
   return (
     <div className="space-y-8">
       <div>
@@ -60,7 +63,7 @@ export default async function LeadsPage() {
         <p className="mt-2 text-gray-600">Track and convert prospective attendees.</p>
       </div>
 
-      <LeadsTable leads={leads || []} userId={user.id} userGroupId={profile.group_id || null} role={profile.role} />
+      <LeadsTable leads={leads || []} userId={user.id} userGroupId={profile.group_id || null} role={profile.role} users={users || []} />
     </div>
   )
 }
