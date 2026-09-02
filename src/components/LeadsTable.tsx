@@ -114,14 +114,14 @@ export default function LeadsTable({ leads, userId, userGroupId, role, users = [
   const handleUnclaim = async (leadId: string) => {
     const { error } = await supabase
       .from('registrations')
-      .update({ registered_by: null, lead_status: 'uncontacted' })
+      .update({ registered_by: null, lead_status: 'uncontacted', is_force_assigned: false })
       .eq('id', leadId)
 
     if (error) {
       toast.error('Failed to unclaim lead', { description: error.message })
     } else {
       toast.success('Lead unclaimed successfully!')
-      setData(data.map(l => l.id === leadId ? { ...l, registered_by: null, lead_status: 'uncontacted' } : l))
+      setData(data.map(l => l.id === leadId ? { ...l, registered_by: null, lead_status: 'uncontacted', is_force_assigned: false } : l))
       await revalidateDashboard()
       router.refresh()
     }
@@ -355,6 +355,17 @@ export default function LeadsTable({ leads, userId, userGroupId, role, users = [
                       {canManage && (viewContext === 'available' || viewContext === 'team') && (
                         <Button variant="outline" size="sm" onClick={() => openAssignModal(lead)} className="px-2" title="Assign to Junior">
                           <UserPlus className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {canManage && viewContext === 'team' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleUnclaim(lead.id)} 
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                          title="Unclaim Lead from Junior"
+                        >
+                          Unclaim
                         </Button>
                       )}
                     </div>
