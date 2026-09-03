@@ -310,6 +310,41 @@ export default function TeamAssignment({
                 </BarChart>
               </ResponsiveContainer>
             </div>
+
+            {selectedJuniorId && (
+              <div className="md:col-span-2 mt-6">
+                <h3 className="text-lg font-bold mb-4">
+                  Total Registrations: {teamRegistrations?.filter(r => r.registered_by === selectedJuniorId).length || 0}
+                </h3>
+                <div className="max-h-64 overflow-y-auto border rounded-md">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-white z-10">
+                      <TableRow>
+                        <TableHead>Attendee Name</TableHead>
+                        <TableHead>College</TableHead>
+                        <TableHead>Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {teamRegistrations?.filter(r => r.registered_by === selectedJuniorId).map((reg) => (
+                        <TableRow key={reg.id}>
+                          <TableCell className="font-medium">{reg.attendee_name}</TableCell>
+                          <TableCell>{reg.college_name || '-'}</TableCell>
+                          <TableCell>{new Date(reg.created_at).toLocaleDateString()}</TableCell>
+                        </TableRow>
+                      ))}
+                      {(!teamRegistrations || teamRegistrations.filter(r => r.registered_by === selectedJuniorId).length === 0) && (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center py-4 text-gray-500">
+                            No registrations found for this junior.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
