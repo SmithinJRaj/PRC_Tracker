@@ -247,7 +247,13 @@ export default function LeadsTable({ leads, userId, userGroupId, role, users = [
         const { error } = await supabase.from('registrations').insert(payload)
 
         if (error) {
-          toast.error('Failed to import CSV', { description: error.message })
+          if (error.code === '23505' && error.message?.includes('phone')) {
+            toast.error('A lead with this phone number already exists.', { description: 'One or more rows contain a duplicate phone number.' })
+          } else if (error.code === '23505') {
+            toast.error('Duplicate entry detected.', { description: error.message })
+          } else {
+            toast.error('Failed to import CSV', { description: error.message })
+          }
         } else {
           toast.success('Leads imported successfully!')
           setImportModalOpen(false)
@@ -352,11 +358,13 @@ export default function LeadsTable({ leads, userId, userGroupId, role, users = [
                       <Button variant="outline" size="sm" onClick={() => handleClaim(lead.id)} disabled={lead.registered_by !== null}>
                         Claim
                       </Button>
+                      {/* Phase 24: Assign UI temporarily hidden
                       {canManage && (viewContext === 'available' || viewContext === 'team') && (
                         <Button variant="outline" size="sm" onClick={() => openAssignModal(lead)} className="px-2" title="Assign to Junior">
                           <UserPlus className="w-4 h-4" />
                         </Button>
                       )}
+                      */}
                       {canManage && viewContext === 'team' && (
                         <Button 
                           variant="outline" 
@@ -545,6 +553,7 @@ export default function LeadsTable({ leads, userId, userGroupId, role, users = [
         </DialogContent>
       </Dialog>
 
+      {/* Phase 24: Assign Dialog temporarily hidden
       <Dialog open={assignModalOpen} onOpenChange={setAssignModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -578,6 +587,7 @@ export default function LeadsTable({ leads, userId, userGroupId, role, users = [
           </div>
         </DialogContent>
       </Dialog>
+      */}
     </div>
   )
 }

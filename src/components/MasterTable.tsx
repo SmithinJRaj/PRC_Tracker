@@ -11,7 +11,8 @@ import { toast } from 'sonner'
 import Modal from './Modal'
 import RegistrationForm from './RegistrationForm'
 import AlertDialog from './AlertDialog'
-import { Download, CheckCircle2, Circle, Edit, Trash2, Mail, Phone } from 'lucide-react'
+import { Download, CheckCircle2, Circle, Edit, Trash2, Mail, Phone, ShieldCheck } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 type Registration = {
   id: string
@@ -51,8 +52,12 @@ export default function MasterTable({ initialData, role, currentUserId }: { init
   const filteredData = data.filter(r => 
     r.attendee_name.toLowerCase().includes(search.toLowerCase()) ||
     (r.users?.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
-    (r.phone || '').replace(/\s/g, '').includes(search.replace(/\s/g, ''))
+    (r.phone || '').replace(/\s/g, '').includes(search.replace(/\s/g, '')) ||
+    (r.tathva_id || '').toLowerCase().includes(search.toLowerCase())
   )
+
+  const pendingData = filteredData.filter(r => r.verification_status === 'pending' && r.lead_status === 'registered')
+  const verifiedData = filteredData.filter(r => r.verification_status === 'verified')
 
   const totalRegistrations = data.filter(d => d.lead_status === 'registered').length
   const pendingVerifications = data.filter(d => d.verification_status === 'pending' && d.lead_status === 'registered').length
@@ -136,6 +141,108 @@ export default function MasterTable({ initialData, role, currentUserId }: { init
     document.body.removeChild(link)
   }
 
+  const renderMasterTable = (rows: Registration[], showVerifyAction: boolean) => (
+    <div className="rounded-md border overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Status</TableHead>
+            <TableHead>Attendee Name</TableHead>
+            <TableHead>Contact</TableHead>
+            <TableHead>College</TableHead>
+            <TableHead>Region</TableHead>
+            <TableHead>Event</TableHead>
+            <TableHead>Fee</TableHead>
+            <TableHead>Registered By</TableHead>
+            <TableHead>Date</TableHead>
+            {canManage && <TableHead className="text-right">Actions</TableHead>}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((reg) => (
+            <TableRow key={reg.id}>
+              <TableCell>
+                {reg.verification_status === 'verified' 
+                  ? <span className="inline-flex items-center gap-1 text-green-600 text-xs font-medium"><CheckCircle2 className="w-4 h-4" /> Verified</span>
+                  : <span className="inline-flex items-center gap-1 text-amber-600 text-xs font-medium"><Circle className="w-4 h-4" /> Pending</span>
+                }
+              </TableCell>
+              <TableCell className="font-medium">{reg.attendee_name}</TableCell>
+              <TableCell>
+                <div className="flex flex-col space-y-1 text-sm text-gray-600">
+                  {reg.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3 text-gray-400" />{reg.phone}</span>}
+                  {reg.attendee_email && <span className="flex items-center gap-1"><Mail className="w-3 h-3 text-gray-400" />{reg.attendee_email}</span>}
+                  {!reg.phone && !reg.attendee_email && <span className="text-gray-400 italic">None</span>}
+                </div>
+              </TableCell>
+              <TableCell>{reg.college_name}</TableCell>
+              <TableCell>{reg.groups?.name || 'Unknown'}</TableCell>
+              <TableCell>
+                <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                  {reg.event || 'None'}
+                </span>
+              </TableCell>
+              <TableCell className="font-mono text-gray-700">₹{reg.reg_fee || 0}</TableCell>
+              <TableCell className="text-gray-500">{reg.users?.full_name || 'Unknown'}</TableCell>
+              <TableCell>{new Date(reg.created_at).toLocaleDateString()}</TableCell>
+              {canManage && (
+                <TableCell className="text-right">
+                  <div className="flex justify-end items-center gap-1">
+                    {showVerifyAction && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                        onClick={() => handleVerifyToggle(reg.id, reg.verification_status)}
+                      >
+                        <ShieldCheck className="w-4 h-4 mr-1" /> Verify
+                      </Button>
+                    )}
+                    {!showVerifyAction && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 border-amber-200"
+                        onClick={() => handleVerifyToggle(reg.id, reg.verification_status)}
+                      >
+                        Unverify
+                      </Button>
+                    )}
+                    {isAdmin && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 text-gray-500 hover:text-blue-600"
+                        onClick={() => openAdminEditModal(reg)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 text-gray-500 hover:text-red-600"
+                      onClick={() => openDeleteAlert(reg)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              )}
+            </TableRow>
+          ))}
+          {rows.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={canManage ? 10 : 9} className="text-center py-8 text-gray-500">
+                No registrations found in this view.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  )
+
   return (
     <div className="space-y-8">
       {/* Analytics Header */}
@@ -159,7 +266,7 @@ export default function MasterTable({ initialData, role, currentUserId }: { init
           <h2 className="text-xl font-semibold text-gray-900">Master Data</h2>
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <Input 
-              placeholder="Search attendee or junior..." 
+              placeholder="Search name, phone, tathva ID..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="max-w-xs"
@@ -170,91 +277,20 @@ export default function MasterTable({ initialData, role, currentUserId }: { init
           </div>
         </div>
 
-        <div className="rounded-md border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Verify</TableHead>
-                <TableHead>Attendee Name</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>College</TableHead>
-                <TableHead>Region</TableHead>
-                <TableHead>Event</TableHead>
-                <TableHead>Fee</TableHead>
-                <TableHead>Registered By</TableHead>
-                <TableHead>Date</TableHead>
-                {canManage && <TableHead className="text-right">Actions</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredData.map((reg) => (
-                <TableRow key={reg.id}>
-                  <TableCell>
-                    <button 
-                      onClick={() => handleVerifyToggle(reg.id, reg.verification_status)}
-                      className="focus:outline-none transition-colors"
-                      title={reg.verification_status === 'verified' ? 'Verified (Locked)' : 'Pending Verification'}
-                    >
-                      {reg.verification_status === 'verified' 
-                        ? <CheckCircle2 className="w-6 h-6 text-green-500" />
-                        : <Circle className="w-6 h-6 text-gray-300 hover:text-gray-400" />
-                      }
-                    </button>
-                  </TableCell>
-                  <TableCell className="font-medium">{reg.attendee_name}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-col space-y-1 text-sm text-gray-600">
-                      {reg.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3 text-gray-400" />{reg.phone}</span>}
-                      {reg.attendee_email && <span className="flex items-center gap-1"><Mail className="w-3 h-3 text-gray-400" />{reg.attendee_email}</span>}
-                      {!reg.phone && !reg.attendee_email && <span className="text-gray-400 italic">None</span>}
-                    </div>
-                  </TableCell>
-                  <TableCell>{reg.college_name}</TableCell>
-                  <TableCell>{reg.groups?.name || 'Unknown'}</TableCell>
-                  <TableCell>
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                      {reg.event || 'None'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="font-mono text-gray-700">₹{reg.reg_fee || 0}</TableCell>
-                  <TableCell className="text-gray-500">{reg.users?.full_name || 'Unknown'}</TableCell>
-                  <TableCell>{new Date(reg.created_at).toLocaleDateString()}</TableCell>
-                  {canManage && (
-                    <TableCell className="text-right">
-                      <div className="flex justify-end items-center gap-1">
-                        {isAdmin && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 w-8 p-0 text-gray-500 hover:text-blue-600"
-                            onClick={() => openAdminEditModal(reg)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 text-gray-500 hover:text-red-600"
-                          onClick={() => openDeleteAlert(reg)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-              {filteredData.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={canManage ? 9 : 8} className="text-center py-8 text-gray-500">
-                    No registrations found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <Tabs defaultValue="pending" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="pending">Pending Verification ({pendingData.length})</TabsTrigger>
+            <TabsTrigger value="verified">Verified ({verifiedData.length})</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="pending">
+            {renderMasterTable(pendingData, true)}
+          </TabsContent>
+          
+          <TabsContent value="verified">
+            {renderMasterTable(verifiedData, false)}
+          </TabsContent>
+        </Tabs>
       </div>
 
       <Modal isOpen={editModalOpen} onClose={() => setEditModalOpen(false)}>

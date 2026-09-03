@@ -37,6 +37,7 @@ export default function GroupsManager({ initialGroups, users }: { initialGroups:
 
   const supabase = createClient()
   const router = useRouter()
+  const [search, setSearch] = useState('')
 
   const stateGroups = groups.filter(g => g.type === 'state')
 
@@ -117,6 +118,14 @@ export default function GroupsManager({ initialGroups, users }: { initialGroups:
           </CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="mb-4">
+            <Input 
+              placeholder="Search groups..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="max-w-xs"
+            />
+          </div>
           <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
@@ -129,7 +138,7 @@ export default function GroupsManager({ initialGroups, users }: { initialGroups:
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {groups.map(g => {
+                {groups.filter(g => g.name.toLowerCase().includes(search.toLowerCase())).map(g => {
                   const seniors = getAssignedSeniors(g.id)
                   return (
                     <TableRow key={g.id}>

@@ -36,12 +36,19 @@ export default function JuniorRegistrations({ registrations, userId, userGroupId
   return (
     <>
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <h2 className="text-xl font-semibold mb-4 text-gray-900">Your Recent Registrations</h2>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+          <h2 className="text-xl font-semibold text-gray-900">Your Registration Log</h2>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <span className="text-sm font-medium text-blue-700">Total Registrations:</span>
+            <span className="text-xl font-bold text-blue-800">{registrations.length}</span>
+          </div>
+        </div>
         {registrations && registrations.length > 0 ? (
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[60px]">Sl. No.</TableHead>
                   <TableHead>Attendee Name</TableHead>
                   <TableHead>College</TableHead>
                   <TableHead>Region</TableHead>
@@ -51,10 +58,11 @@ export default function JuniorRegistrations({ registrations, userId, userGroupId
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {registrations.map((reg) => {
+                {registrations.map((reg, index) => {
                   const isLocked = reg.verification_status === 'verified' || !reg.can_junior_edit
                   return (
                     <TableRow key={reg.id}>
+                      <TableCell className="text-gray-500 font-mono text-sm">{index + 1}</TableCell>
                       <TableCell className="font-medium">{reg.attendee_name}</TableCell>
                       <TableCell>{reg.college_name}</TableCell>
                       <TableCell>{reg.groups?.name || 'Unknown'}</TableCell>

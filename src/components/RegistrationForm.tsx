@@ -93,7 +93,9 @@ export default function RegistrationForm({ userId, userGroupId, initialData, isC
       // Update existing
       const { error } = await supabase.from('registrations').update(data).eq('id', initialData.id)
       if (error) {
-        if (error.code === '23505') {
+        if (error.code === '23505' && error.message?.includes('phone')) {
+          toast.error('A lead with this phone number already exists.')
+        } else if (error.code === '23505') {
           toast.error('This Tathva ID is already registered to another user.')
         } else {
           toast.error('Failed to update', { description: error.message })
@@ -108,7 +110,9 @@ export default function RegistrationForm({ userId, userGroupId, initialData, isC
       const insertData = { ...data, group_id: userGroupId }
       const { error } = await supabase.from('registrations').insert(insertData)
       if (error) {
-        if (error.code === '23505') {
+        if (error.code === '23505' && error.message?.includes('phone')) {
+          toast.error('A lead with this phone number already exists.')
+        } else if (error.code === '23505') {
           toast.error('This Tathva ID is already registered to another user.')
         } else {
           toast.error('Failed to register', { description: error.message })

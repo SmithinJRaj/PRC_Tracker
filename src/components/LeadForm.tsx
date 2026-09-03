@@ -75,7 +75,13 @@ export default function LeadForm({ initialData, onSuccess, userId, userGroupId }
       // Update existing
       const { error } = await supabase.from('registrations').update(data).eq('id', initialData.id)
       if (error) {
-        toast.error('Failed to update lead', { description: error.message })
+        if (error.code === '23505' && error.message?.includes('phone')) {
+          toast.error('A lead with this phone number already exists.')
+        } else if (error.code === '23505') {
+          toast.error('Duplicate entry detected.', { description: error.message })
+        } else {
+          toast.error('Failed to update lead', { description: error.message })
+        }
       } else {
         toast.success('Lead updated!')
         await revalidateDashboard()
@@ -93,7 +99,13 @@ export default function LeadForm({ initialData, onSuccess, userId, userGroupId }
       const { error } = await supabase.from('registrations').insert(insertData)
 
       if (error) {
-        toast.error('Failed to create lead', { description: error.message })
+        if (error.code === '23505' && error.message?.includes('phone')) {
+          toast.error('A lead with this phone number already exists.')
+        } else if (error.code === '23505') {
+          toast.error('Duplicate entry detected.', { description: error.message })
+        } else {
+          toast.error('Failed to create lead', { description: error.message })
+        }
       } else {
         toast.success('Lead created successfully!')
         ;(e.target as HTMLFormElement).reset()
