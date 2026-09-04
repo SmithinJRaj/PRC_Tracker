@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import Modal from './Modal'
 import RegistrationForm from './RegistrationForm'
@@ -27,11 +29,34 @@ type Registration = {
 export default function JuniorRegistrations({ registrations, userId, userGroupId }: { registrations: Registration[], userId: string, userGroupId: string | null }) {
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [selectedReg, setSelectedReg] = useState<Registration | null>(null)
+  const [searchColumn, setSearchColumn] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
 
   const openEditModal = (reg: Registration) => {
     setSelectedReg(reg)
     setEditModalOpen(true)
   }
+
+  const filteredRegistrations = registrations.filter(reg => {
+    if (!searchQuery) return true
+    const query = searchQuery.toLowerCase()
+
+    switch (searchColumn) {
+      case 'name':
+        return reg.attendee_name.toLowerCase().includes(query)
+      case 'college':
+        return (reg.college_name || '').toLowerCase().includes(query)
+      case 'date':
+        return new Date(reg.created_at).toLocaleDateString().includes(query)
+      default: // 'all'
+        return (
+          reg.attendee_name.toLowerCase().includes(query) ||
+          (reg.college_name || '').toLowerCase().includes(query) ||
+          new Date(reg.created_at).toLocaleDateString().includes(query) ||
+          (reg.event || '').toLowerCase().includes(query)
+        )
+    }
+  })
 
   return (
     <>
@@ -43,7 +68,28 @@ export default function JuniorRegistrations({ registrations, userId, userGroupId
             <span className="text-xl font-bold text-blue-800">{registrations.length}</span>
           </div>
         </div>
-        {registrations && registrations.length > 0 ? (
+
+        <div className="flex flex-col sm:flex-row gap-2 mb-4">
+          <Select value={searchColumn} onValueChange={(val) => setSearchColumn(val || 'all')}>
+            <SelectTrigger className="w-full sm:w-[140px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Columns</SelectItem>
+              <SelectItem value="name">Name</SelectItem>
+              <SelectItem value="college">College</SelectItem>
+              <SelectItem value="date">Date</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input
+            placeholder={`Search${searchColumn !== 'all' ? ` by ${searchColumn}` : ''}...`}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="max-w-xs"
+          />
+        </div>
+
+        {filteredRegistrations.length > 0 ? (
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -58,7 +104,7 @@ export default function JuniorRegistrations({ registrations, userId, userGroupId
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {registrations.map((reg, index) => {
+                {filteredRegistrations.map((reg, index) => {
                   const isLocked = reg.verification_status === 'verified' || !reg.can_junior_edit
                   return (
                     <TableRow key={reg.id}>
@@ -89,7 +135,9 @@ export default function JuniorRegistrations({ registrations, userId, userGroupId
             </Table>
           </div>
         ) : (
-          <p className="text-gray-500 text-center py-8">No registrations found. Start logging!</p>
+          <p className="text-gray-500 text-center py-8">
+            {searchQuery ? 'No registrations match your search.' : 'No registrations found. Start logging!'}
+          </p>
         )}
       </div>
 

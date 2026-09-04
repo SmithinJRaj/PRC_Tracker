@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { Plus, Pencil, Network } from 'lucide-react'
+import { Plus, Pencil, Network, Trash2 } from 'lucide-react'
 
 type Group = {
   id: string
@@ -103,6 +103,20 @@ export default function GroupsManager({ initialGroups, users }: { initialGroups:
     setEditOpen(true)
   }
 
+  const handleDeleteGroup = async (groupId: string) => {
+    const groupName = groups.find(g => g.id === groupId)?.name
+    if (!confirm(`Are you sure you want to delete the group "${groupName}"? This will unassign all users from this group.`)) return
+
+    const { error } = await supabase.from('groups').delete().eq('id', groupId)
+    if (error) {
+      toast.error('Failed to delete group', { description: error.message })
+    } else {
+      toast.success('Group deleted successfully!')
+      setGroups(groups.filter(g => g.id !== groupId))
+      router.refresh()
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
@@ -163,11 +177,21 @@ export default function GroupsManager({ initialGroups, users }: { initialGroups:
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        {g.type === 'district' && (
-                          <Button variant="outline" size="sm" onClick={() => openEdit(g)}>
-                            <Pencil className="w-3 h-3 mr-1" /> Edit Hierarchy
+                        <div className="flex justify-end items-center gap-1">
+                          {g.type === 'district' && (
+                            <Button variant="outline" size="sm" onClick={() => openEdit(g)}>
+                              <Pencil className="w-3 h-3 mr-1" /> Edit Hierarchy
+                            </Button>
+                          )}
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 text-gray-500 hover:text-red-600"
+                            onClick={() => handleDeleteGroup(g.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
-                        )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   )

@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import SidebarNav from '@/components/SidebarNav'
+import OnboardingGate from '@/components/OnboardingGate'
 
 export default async function DashboardLayout({
   children,
@@ -22,13 +23,19 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .single()
 
-  if (['junior', 'senior'].includes(profile?.role) && !profile?.group_id) {
+  // Ban Gate
+  if (profile?.is_banned) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border border-gray-100 text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Pending Assignment</h1>
+        <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border border-red-200 text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-red-700 mb-2">Account Suspended</h1>
           <p className="text-gray-600 mb-6">
-            Welcome to the PRC Tracker. Please wait for your Senior to assign you to a Region before you can access the dashboard.
+            Your account has been suspended by an administrator. Please contact your Senior or Admin for assistance.
           </p>
           <form action="/auth/signout" method="post">
             <button type="submit" className="text-blue-600 hover:underline font-medium">
@@ -39,6 +46,18 @@ export default async function DashboardLayout({
       </div>
     )
   }
+
+  // Onboarding Gate — Junior with no group gets self-service assignment
+  if (profile?.role === 'junior' && !profile?.group_id) {
+    const { data: allGroups } = await supabase
+      .from('groups')
+      .select('id, name, type')
+      .order('name', { ascending: true })
+
+    return <OnboardingGate userId={user.id} groups={allGroups || []} />
+  }
+
+  // Seniors with no group pass through normally (they are "Unassigned")
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">

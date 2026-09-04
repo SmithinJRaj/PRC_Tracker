@@ -70,7 +70,7 @@ export default async function DirectoryPage() {
   if (profile?.role !== 'junior') {
     let regQuery = supabase
       .from('registrations')
-      .select('registered_by, reg_fee, created_at')
+      .select('id, attendee_name, college_name, registered_by, reg_fee, created_at')
     
     if (allowedGroupIds) {
       regQuery = regQuery.in('group_id', allowedGroupIds)

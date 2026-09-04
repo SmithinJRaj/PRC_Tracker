@@ -45,6 +45,7 @@ export default function TeamAssignment({
   const [selectedJuniorId, setSelectedJuniorId] = useState<string | null>(null)
   const [assignSelections, setAssignSelections] = useState<Record<string, string>>({})
   const [searchJunior, setSearchJunior] = useState('')
+  const [searchTeam, setSearchTeam] = useState('')
   const supabase = createClient()
   const router = useRouter()
 
@@ -351,7 +352,16 @@ export default function TeamAssignment({
 
       {/* My Team */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <h2 className="text-xl font-semibold mb-4 text-gray-900">My Team</h2>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+          <h2 className="text-xl font-semibold text-gray-900">My Team</h2>
+          <input 
+            type="text" 
+            placeholder="Search team by name or roll number..." 
+            value={searchTeam}
+            onChange={(e) => setSearchTeam(e.target.value)}
+            className="border rounded-md px-3 py-2 text-sm w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
         <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
@@ -362,7 +372,10 @@ export default function TeamAssignment({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {myTeam.map((u) => (
+              {myTeam.filter(u => 
+                u.full_name.toLowerCase().includes(searchTeam.toLowerCase()) ||
+                (u.roll_number && u.roll_number.toLowerCase().includes(searchTeam.toLowerCase()))
+              ).map((u) => (
                 <TableRow key={u.id}>
                   <TableCell className="font-medium">{u.full_name}</TableCell>
                   <TableCell>{u.email}</TableCell>

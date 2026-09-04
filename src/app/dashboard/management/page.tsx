@@ -1,8 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import UserManagement from '@/components/UserManagement'
-import GroupManagement from '@/components/GroupManagement'
-import RegionManagement from '@/components/RegionManagement'
 import TeamAssignment from '@/components/TeamAssignment'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
@@ -37,14 +35,7 @@ export default async function ManagementDashboard() {
     .from('groups')
     .select('*')
     .order('name', { ascending: true })
-    
-  // Fetch all regions
-  const { data: allRegions } = await supabase
-    .from('regions')
-    .select('*')
-    .order('name', { ascending: true })
 
-  const seniors = allUsers?.filter(u => u.role === 'senior') || []
   const members = allUsers || []
   
   // Find which group the current senior belongs to
@@ -52,7 +43,6 @@ export default async function ManagementDashboard() {
 
   let seniorGroupIds: string[] = []
   if (seniorGroupId) {
-    // Check if the group is a state (Regional Manager)
     const { data: groupInfo } = await supabase.from('groups').select('type').eq('id', seniorGroupId).single()
     if (groupInfo?.type === 'state') {
       const { data: childGroups } = await supabase.from('groups').select('id').eq('parent_group_id', seniorGroupId)
@@ -66,12 +56,11 @@ export default async function ManagementDashboard() {
   if (seniorGroupIds.length > 0) {
     const { data: regs } = await supabase
       .from('registrations')
-      .select('registered_by, reg_fee, created_at')
+      .select('id, attendee_name, college_name, registered_by, reg_fee, created_at')
       .in('group_id', seniorGroupIds)
     teamRegistrations = regs || []
   }
 
-  // Fetch attendance data for juniors in the team
   let teamAttendance: any[] = []
   if (seniorGroupIds.length > 0) {
     const juniorIds = (allUsers || []).filter(u => u.role === 'junior' && u.group_id && seniorGroupIds.includes(u.group_id)).map(u => u.id)
@@ -86,30 +75,20 @@ export default async function ManagementDashboard() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">System Management</h1>
         <p className="mt-2 text-gray-600">
-          {isAdmin ? 'Manage users, groups, and team assignments.' : 'Assign juniors to your group.'}
+          {isAdmin ? 'Manage users and team assignments.' : 'Assign juniors to your group.'}
         </p>
       </div>
 
       <Tabs defaultValue={isAdmin ? "users" : "teams"} className="w-full">
         <TabsList>
           {isAdmin && <TabsTrigger value="users">User Roles</TabsTrigger>}
-          {isAdmin && <TabsTrigger value="groups">Groups</TabsTrigger>}
-          {isAdmin && <TabsTrigger value="regions">Regions</TabsTrigger>}
           <TabsTrigger value="teams">Team Assignment</TabsTrigger>
         </TabsList>
         
         {isAdmin && (
-          <>
-            <TabsContent value="users">
-              <UserManagement initialUsers={allUsers || []} />
-            </TabsContent>
-            <TabsContent value="groups">
-              <GroupManagement initialGroups={allGroups || []} seniors={seniors} />
-            </TabsContent>
-            <TabsContent value="regions">
-              <RegionManagement initialRegions={allRegions || []} />
-            </TabsContent>
-          </>
+          <TabsContent value="users">
+            <UserManagement initialUsers={allUsers || []} />
+          </TabsContent>
         )}
         
         <TabsContent value="teams">
