@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 
 type Group = {
@@ -13,24 +14,37 @@ type Group = {
   type: string
 }
 
-export default function OnboardingGate({ userId, groups }: { userId: string, groups: Group[] }) {
+export default function OnboardingGate({ userId, groups, role }: { userId: string, groups: Group[], role: string }) {
   const [selectedGroup, setSelectedGroup] = useState('')
+  const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
   const router = useRouter()
 
-  const districtGroups = groups.filter(g => g.type === 'district')
+  const availableGroups = role === 'junior' 
+    ? groups.filter(g => g.type === 'district')
+    : groups // Seniors can select states and districts
 
   const handleSubmit = async () => {
     if (!selectedGroup) {
-      toast.error('Please select a district group.')
+      toast.error('Please select a group.')
+      return
+    }
+
+    if (role === 'junior' && (!phone || phone.length < 10)) {
+      toast.error('Please enter a valid phone number.')
       return
     }
 
     setLoading(true)
+    const payload: any = { group_id: selectedGroup }
+    if (role === 'junior') {
+      payload.phone = phone
+    }
+
     const { error } = await supabase
       .from('users')
-      .update({ group_id: selectedGroup })
+      .update(payload)
       .eq('id', userId)
 
     if (error) {
@@ -53,16 +67,28 @@ export default function OnboardingGate({ userId, groups }: { userId: string, gro
         </div>
 
         <div className="space-y-4">
+          {role === 'junior' && (
+            <div>
+              <Input 
+                placeholder="Phone Number" 
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+              />
+            </div>
+          )}
+
           <Select value={selectedGroup} onValueChange={(val) => setSelectedGroup(val || '')}>
             <SelectTrigger>
-              <SelectValue placeholder="Select your District" />
+              <SelectValue placeholder={`Select your ${role === 'junior' ? 'District' : 'Group'}`} />
             </SelectTrigger>
             <SelectContent>
-              {districtGroups.map(g => (
+              {availableGroups.map(g => (
                 <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
               ))}
-              {districtGroups.length === 0 && (
-                <SelectItem value="none" disabled>No district groups available</SelectItem>
+              {availableGroups.length === 0 && (
+                <SelectItem value="none" disabled>No groups available</SelectItem>
               )}
             </SelectContent>
           </Select>

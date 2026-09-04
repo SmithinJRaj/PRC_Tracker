@@ -245,12 +245,12 @@ export default function GroupsManager({ initialGroups, users }: { initialGroups:
                 <label className="text-sm font-medium text-gray-700">Parent State Group</label>
                 <Select value={selectedParent} onValueChange={(val) => setSelectedParent(val || 'none')}>
                   <SelectTrigger className="mt-1">
-                    <SelectValue />
+                    <SelectValue>{selectedParent === 'none' ? 'None' : (groups.find(g => g.id === selectedParent)?.name || 'None')}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">No Parent</SelectItem>
-                    {stateGroups.map(sg => (
-                      <SelectItem key={sg.id} value={sg.id}>{sg.name}</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
+                    {groups.filter(g => g.type === 'state').map(g => (
+                      <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

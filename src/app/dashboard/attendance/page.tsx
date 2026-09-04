@@ -67,6 +67,12 @@ export default async function AttendancePage() {
   
   const presentUserIds = attendanceData?.map(a => a.user_id) || []
 
+  // Fetch all groups to pass down to the view
+  const { data: groups } = await supabase
+    .from('groups')
+    .select('id, name, type')
+    .order('name', { ascending: true })
+
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
       <div>
@@ -76,6 +82,7 @@ export default async function AttendancePage() {
 
       <AttendanceView 
         juniors={juniors as any || []} 
+        groups={groups as any || []}
         presentUserIds={presentUserIds}
         todayDateString={todayDateString}
       />

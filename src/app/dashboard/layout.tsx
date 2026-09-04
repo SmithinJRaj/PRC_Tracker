@@ -47,17 +47,15 @@ export default async function DashboardLayout({
     )
   }
 
-  // Onboarding Gate — Junior with no group gets self-service assignment
-  if (profile?.role === 'junior' && !profile?.group_id) {
+  // Onboarding Gate — Junior/Senior with no group gets self-service assignment
+  if (['junior', 'senior'].includes(profile?.role) && !profile?.group_id) {
     const { data: allGroups } = await supabase
       .from('groups')
       .select('id, name, type')
       .order('name', { ascending: true })
 
-    return <OnboardingGate userId={user.id} groups={allGroups || []} />
+    return <OnboardingGate userId={user.id} groups={allGroups || []} role={profile.role} />
   }
-
-  // Seniors with no group pass through normally (they are "Unassigned")
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
