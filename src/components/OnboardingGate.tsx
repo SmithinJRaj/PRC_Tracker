@@ -48,12 +48,14 @@ export default function OnboardingGate({ userId, groups, role }: { userId: strin
       .eq('id', userId)
 
     if (error) {
-      toast.error('Failed to join group', { description: error.message })
-    } else {
-      toast.success('Welcome aboard! Redirecting...')
-      window.location.href = '/dashboard'
+      console.error(error)
+      toast.error(error.message || "Failed to join group")
+      setLoading(false)
+      return
     }
-    setLoading(false)
+    
+    toast.success('Welcome aboard! Redirecting...')
+    window.location.href = '/dashboard'
   }
 
   return (

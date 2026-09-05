@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import SidebarNav from '@/components/SidebarNav'
 import OnboardingGate from '@/components/OnboardingGate'
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardLayout({
   children,
 }: {
