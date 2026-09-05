@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createClient } from '@/utils/supabase/client'
 import { toast } from 'sonner'
-import { Search, CheckCircle2, UserX, Users } from 'lucide-react'
+import Papa from 'papaparse'
+import { Search, CheckCircle2, UserX, Users, Download } from 'lucide-react'
 
 type Junior = {
   id: string
@@ -48,6 +49,28 @@ export default function AttendanceView({ juniors, groups, presentUserIds: initia
 
   const presentJuniors = filteredJuniors.filter(j => presentIds.has(j.id))
   const absentJuniors = filteredJuniors.filter(j => !presentIds.has(j.id))
+
+  const exportAttendanceCSV = () => {
+    const data = filteredJuniors.map(junior => ({
+      "Roll Number": junior.roll_number || '',
+      "Name": junior.full_name,
+      "Date": todayDateString,
+      "Status": presentIds.has(junior.id) ? "Present" : "Absent"
+    }))
+
+    const csv = Papa.unparse(data)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    
+    const groupName = selectedGroupId === 'all' ? 'all' : (groups.find(g => g.id === selectedGroupId)?.name || 'group').replace(/\s+/g, '_').toLowerCase()
+    
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `attendance_${groupName}_${todayDateString}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 
   const handleMarkPresent = async (userId: string) => {
     setPresentIds(prev => {
@@ -192,6 +215,11 @@ export default function AttendanceView({ juniors, groups, presentUserIds: initia
               className="w-full pl-10 h-12 text-base border-gray-200 focus:border-blue-500 rounded-lg"
             />
           </div>
+
+          <Button variant="outline" className="h-12 md:w-auto w-full" onClick={exportAttendanceCSV}>
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
         </div>
         
         <div className="flex items-center gap-2 bg-blue-50 text-blue-800 px-4 py-3 rounded-lg border border-blue-200">
