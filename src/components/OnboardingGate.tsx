@@ -42,14 +42,21 @@ export default function OnboardingGate({ userId, groups, role }: { userId: strin
       payload.phone = phone
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('users')
       .update(payload)
       .eq('id', userId)
+      .select()
 
     if (error) {
       console.error(error)
       toast.error(error.message || "Failed to join group")
+      setLoading(false)
+      return
+    }
+    
+    if (!data || data.length === 0) {
+      toast.error("Database update blocked by RLS policy. 0 rows updated.")
       setLoading(false)
       return
     }

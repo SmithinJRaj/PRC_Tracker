@@ -25,6 +25,8 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .single()
 
+  console.log("SERVER LAYOUT CHECK:", profile)
+
   // Ban Gate
   if (profile?.is_banned) {
     return (
