@@ -42,26 +42,31 @@ export default function TelecallingCRM({
   groups,
   colleges: initialColleges,
   users,
-  currentUserId
+  currentUserId,
+  currentUser
 }: {
   groups: Group[]
   colleges: College[]
   users: User[]
   currentUserId: string
+  currentUser: any
 }) {
   const supabase = createClient()
   const router = useRouter()
   const [colleges, setColleges] = useState<College[]>(initialColleges)
 
+  const displayGroups = currentUser.role === 'admin' ? groups : groups.filter(g => g.id === currentUser.group_id)
+
   // Data Entry State
   const [isNewCollege, setIsNewCollege] = useState(false)
   const [newCollegeName, setNewCollegeName] = useState('')
-  const [entryGroupId, setEntryGroupId] = useState('')
+  const [entryGroupId, setEntryGroupId] = useState(currentUser.role !== 'admin' ? currentUser.group_id : '')
   const [entryCollegeId, setEntryCollegeId] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
 
   // Tracking State
+  const [trackGroupId, setTrackGroupId] = useState(currentUser.role !== 'admin' ? currentUser.group_id : '')
   const [trackCollegeId, setTrackCollegeId] = useState('')
   const [leads, setLeads] = useState<Lead[]>([])
   const [isLoadingLeads, setIsLoadingLeads] = useState(false)
@@ -206,14 +211,14 @@ export default function TelecallingCRM({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="space-y-2">
-              <Select value={entryGroupId} onValueChange={(val) => setEntryGroupId(val || '')}>
+              <Select value={entryGroupId} onValueChange={(val) => setEntryGroupId(val || '')} disabled={currentUser.role !== 'admin'}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Group">
-                     {entryGroupId ? groups.find(g => g.id === entryGroupId)?.name : "Select Group"}
+                     {entryGroupId ? displayGroups.find(g => g.id === entryGroupId)?.name : "Select Group"}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {groups.map(g => (
+                  {displayGroups.map(g => (
                     <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -271,15 +276,31 @@ export default function TelecallingCRM({
           <CardDescription>Manage leads for a selected college.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-6 max-w-md">
-            <Select value={trackCollegeId} onValueChange={(val) => setTrackCollegeId(val || '')}>
+          <div className="mb-6 max-w-md flex flex-col md:flex-row gap-4">
+            <Select value={trackGroupId} onValueChange={(val) => {
+              setTrackGroupId(val || '');
+              setTrackCollegeId('');
+            }} disabled={currentUser.role !== 'admin'}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select Group">
+                   {trackGroupId ? displayGroups.find(g => g.id === trackGroupId)?.name : "Select Group"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {displayGroups.map(g => (
+                  <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={trackCollegeId} onValueChange={(val) => setTrackCollegeId(val || '')} disabled={!trackGroupId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select College to track">
                    {trackCollegeId ? colleges.find(c => c.id === trackCollegeId)?.name : "Select College"}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {colleges.map(c => (
+                {colleges.filter(c => c.group_id === trackGroupId).map(c => (
                   <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                 ))}
               </SelectContent>
