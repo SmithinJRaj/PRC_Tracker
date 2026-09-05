@@ -51,7 +51,7 @@ export default function OnboardingGate({ userId, groups, role }: { userId: strin
       toast.error('Failed to join group', { description: error.message })
     } else {
       toast.success('Welcome aboard! Redirecting...')
-      router.refresh()
+      window.location.href = '/dashboard'
     }
     setLoading(false)
   }
