@@ -81,7 +81,9 @@ export default function OnboardingGate({ userId, groups, role }: { userId: strin
 
           <Select value={selectedGroup} onValueChange={(val) => setSelectedGroup(val || '')}>
             <SelectTrigger>
-              <SelectValue placeholder={`Select your ${role === 'junior' ? 'District' : 'Group'}`} />
+              <SelectValue placeholder={`Select your ${role === 'junior' ? 'District' : 'Group'}`}>
+                {selectedGroup ? availableGroups.find(g => g.id === selectedGroup)?.name : `Select your ${role === 'junior' ? 'District' : 'Group'}`}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {availableGroups.map(g => (

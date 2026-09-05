@@ -171,7 +171,9 @@ export default function AttendanceView({ juniors, groups, presentUserIds: initia
         <div className="flex flex-col md:flex-row gap-4 mb-4">
           <Select value={selectedGroupId} onValueChange={(val) => setSelectedGroupId(val || 'all')}>
             <SelectTrigger className="w-full md:w-[250px] h-12">
-              <SelectValue placeholder="Filter by Group" />
+              <SelectValue placeholder="Filter by Group">
+                {selectedGroupId === 'all' ? 'All Groups' : (groups.find(g => g.id === selectedGroupId)?.name || 'Filter by Group')}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Groups</SelectItem>

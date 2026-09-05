@@ -565,7 +565,9 @@ export default function LeadsTable({ leads, userId, userGroupId, role, users = [
           <div className="space-y-4 mt-4">
             <Select value={selectedJuniorForAssign} onValueChange={(val) => setSelectedJuniorForAssign(val || '')}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a Junior" />
+                <SelectValue placeholder="Select a Junior">
+                  {selectedJuniorForAssign ? manageableJuniors.find(j => j.id === selectedJuniorForAssign)?.full_name : "Select a Junior"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {manageableJuniors.length > 0 ? (
