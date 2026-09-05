@@ -20,6 +20,9 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Ignore non-HTTP traffic (e.g. chrome-extension://)
+  if (!event.request.url.startsWith('http')) return;
+
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
