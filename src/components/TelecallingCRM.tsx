@@ -206,7 +206,7 @@ export default function TelecallingCRM({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="space-y-2">
-              <Select value={entryGroupId} onValueChange={setEntryGroupId}>
+              <Select value={entryGroupId} onValueChange={(val) => setEntryGroupId(val || '')}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Group">
                      {entryGroupId ? groups.find(g => g.id === entryGroupId)?.name : "Select Group"}
@@ -230,7 +230,7 @@ export default function TelecallingCRM({
               </div>
             ) : (
               <div className="space-y-2">
-                <Select value={entryCollegeId} onValueChange={setEntryCollegeId} disabled={!entryGroupId}>
+                <Select value={entryCollegeId} onValueChange={(val) => setEntryCollegeId(val || '')} disabled={!entryGroupId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select College">
                       {entryCollegeId ? colleges.find(c => c.id === entryCollegeId)?.name : "Select College"}
@@ -272,7 +272,7 @@ export default function TelecallingCRM({
         </CardHeader>
         <CardContent>
           <div className="mb-6 max-w-md">
-            <Select value={trackCollegeId} onValueChange={setTrackCollegeId}>
+            <Select value={trackCollegeId} onValueChange={(val) => setTrackCollegeId(val || '')}>
               <SelectTrigger>
                 <SelectValue placeholder="Select College to track">
                    {trackCollegeId ? colleges.find(c => c.id === trackCollegeId)?.name : "Select College"}
@@ -385,7 +385,7 @@ export default function TelecallingCRM({
                           <TableCell>
                             <Select 
                               value={lead.called_by || ''} 
-                              onValueChange={(val) => updateLead(lead.id, { called_by: val })}
+                              onValueChange={(val) => updateLead(lead.id, { called_by: val || null })}
                             >
                               <SelectTrigger className="h-8 text-xs border-0 bg-transparent p-0 w-24">
                                 <SelectValue placeholder="Assign">
