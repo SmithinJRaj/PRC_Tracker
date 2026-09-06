@@ -20,6 +20,10 @@ export default async function LeadsPage() {
     redirect('/login')
   }
 
+  if (profile.role === 'junior') {
+    redirect('/dashboard/attendance')
+  }
+
 
 
   // Fetch base data
@@ -30,7 +34,7 @@ export default async function LeadsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">CRM & Lead Tracking</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Lead Tracking</h1>
         <p className="mt-2 text-gray-600">Upload CSV lists and track telecalling status.</p>
       </div>
 
