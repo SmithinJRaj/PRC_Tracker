@@ -20,12 +20,6 @@ export default async function LeadsPage() {
     redirect('/login')
   }
 
-  if (profile.role === 'junior') {
-    redirect('/dashboard/attendance')
-  }
-
-
-
   // Fetch base data
   const { data: groups } = await supabase.from('groups').select('id, name')
   const { data: colleges } = await supabase.from('colleges').select('id, name, group_id')
