@@ -45,7 +45,7 @@ export default function SidebarNav({ role, fullName }: SidebarNavProps) {
       name: 'Team Directory',
       href: '/dashboard/directory',
       icon: Contact,
-      show: true,
+      show: role !== 'junior',
     },
     {
       name: 'Management',

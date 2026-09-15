@@ -17,6 +17,10 @@ export default async function DirectoryPage() {
     .eq('id', user.id)
     .single()
 
+  if (profile?.role === 'junior') {
+    redirect('/dashboard')
+  }
+
   const allowedGroupIds = profile
     ? await getAllowedGroupIds(supabase, profile)
     : []
