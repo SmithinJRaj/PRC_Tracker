@@ -55,18 +55,18 @@ export default function TelecallingCRM({
   const router = useRouter()
   const [colleges, setColleges] = useState<College[]>(initialColleges)
 
-  const displayGroups = currentUser.role === 'admin' ? groups : groups.filter(g => g.id === currentUser.group_id)
+  const displayGroups = groups
 
   // Data Entry State
   const [isNewCollege, setIsNewCollege] = useState(false)
   const [newCollegeName, setNewCollegeName] = useState('')
-  const [entryGroupId, setEntryGroupId] = useState(currentUser.role !== 'admin' ? currentUser.group_id : '')
+  const [entryGroupId, setEntryGroupId] = useState(currentUser.role !== 'admin' && groups.length === 1 ? groups[0].id : '')
   const [entryCollegeId, setEntryCollegeId] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
 
   // Tracking State
-  const [trackGroupId, setTrackGroupId] = useState(currentUser.role !== 'admin' ? currentUser.group_id : '')
+  const [trackGroupId, setTrackGroupId] = useState(currentUser.role !== 'admin' && groups.length === 1 ? groups[0].id : '')
   const [trackCollegeId, setTrackCollegeId] = useState('')
   const [leads, setLeads] = useState<Lead[]>([])
   const [isLoadingLeads, setIsLoadingLeads] = useState(false)
@@ -194,80 +194,82 @@ export default function TelecallingCRM({
   return (
     <div className="space-y-8">
       {/* Data Entry Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Data Entry</CardTitle>
-          <CardDescription>Upload leads via CSV for a college.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 mb-4">
-            <Button variant={isNewCollege ? 'default' : 'outline'} onClick={() => setIsNewCollege(true)}>
-              Create New College
-            </Button>
-            <Button variant={!isNewCollege ? 'default' : 'outline'} onClick={() => setIsNewCollege(false)}>
-              Add to Existing
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div className="space-y-2">
-              <Select value={entryGroupId} onValueChange={(val) => setEntryGroupId(val || '')} disabled={currentUser.role !== 'admin'}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Group">
-                     {entryGroupId ? displayGroups.find(g => g.id === entryGroupId)?.name : "Select Group"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {displayGroups.map(g => (
-                    <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      {currentUser.role !== 'junior' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Data Entry</CardTitle>
+            <CardDescription>Upload leads via CSV for a college.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4 mb-4">
+              <Button variant={isNewCollege ? 'default' : 'outline'} onClick={() => setIsNewCollege(true)}>
+                Create New College
+              </Button>
+              <Button variant={!isNewCollege ? 'default' : 'outline'} onClick={() => setIsNewCollege(false)}>
+                Add to Existing
+              </Button>
             </div>
 
-            {isNewCollege ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div className="space-y-2">
-                <Input 
-                  placeholder="College Name" 
-                  value={newCollegeName}
-                  onChange={(e) => setNewCollegeName(e.target.value)}
-                />
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Select value={entryCollegeId} onValueChange={(val) => setEntryCollegeId(val || '')} disabled={!entryGroupId}>
+                <Select value={entryGroupId} onValueChange={(val) => setEntryGroupId(val || '')} disabled={currentUser.role !== 'admin' && displayGroups.length <= 1}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select College">
-                      {entryCollegeId ? colleges.find(c => c.id === entryCollegeId)?.name : "Select College"}
+                    <SelectValue placeholder="Select Group">
+                       {entryGroupId ? displayGroups.find(g => g.id === entryGroupId)?.name : "Select Group"}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {colleges.filter(c => c.group_id === entryGroupId).map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    {displayGroups.map(g => (
+                      <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-            )}
 
-            <div className="space-y-2">
-              <Input 
-                type="file" 
-                accept=".csv"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-              />
+              {isNewCollege ? (
+                <div className="space-y-2">
+                  <Input
+                    placeholder="College Name"
+                    value={newCollegeName}
+                    onChange={(e) => setNewCollegeName(e.target.value)}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Select value={entryCollegeId} onValueChange={(val) => setEntryCollegeId(val || '')} disabled={!entryGroupId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select College">
+                        {entryCollegeId ? colleges.find(c => c.id === entryCollegeId)?.name : "Select College"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {colleges.filter(c => c.group_id === entryGroupId).map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                />
+              </div>
             </div>
-          </div>
 
-          <Button 
-            className="w-full bg-blue-600 hover:bg-blue-700" 
-            onClick={handleFileUpload}
-            disabled={isUploading || !file}
-          >
-            {isUploading ? 'Processing...' : 'Upload & Import'}
-          </Button>
-        </CardContent>
-      </Card>
+            <Button
+              className="w-full bg-blue-600 hover:bg-blue-700"
+              onClick={handleFileUpload}
+              disabled={isUploading || !file}
+            >
+              {isUploading ? 'Processing...' : 'Upload & Import'}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tracking Section */}
       <Card>
@@ -280,7 +282,7 @@ export default function TelecallingCRM({
             <Select value={trackGroupId} onValueChange={(val) => {
               setTrackGroupId(val || '');
               setTrackCollegeId('');
-            }} disabled={currentUser.role !== 'admin'}>
+            }} disabled={currentUser.role !== 'admin' && displayGroups.length <= 1}>
               <SelectTrigger>
                 <SelectValue placeholder="Select Group">
                    {trackGroupId ? displayGroups.find(g => g.id === trackGroupId)?.name : "Select Group"}
@@ -357,14 +359,16 @@ export default function TelecallingCRM({
                             >
                               <Check className="h-4 w-4" />
                             </Button>
-                            <Button 
-                              size="icon" 
-                              variant="outline" 
-                              className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => updateLead(lead.id, { status: 'invalid' })}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
+                            {currentUser.role !== 'junior' && (
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => updateLead(lead.id, { status: 'invalid' })}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}

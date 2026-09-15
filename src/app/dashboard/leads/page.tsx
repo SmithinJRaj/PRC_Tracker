@@ -24,8 +24,17 @@ export default async function LeadsPage() {
   const allowedGroupIds = await getAllowedGroupIds(supabase, profile)
 
   // Fetch base data
-  const { data: groups } = await supabase.from('groups').select('id, name')
-  const { data: colleges } = await supabase.from('colleges').select('id, name, group_id')
+  let groupsQuery = supabase.from('groups').select('id, name')
+  if (allowedGroupIds) {
+    groupsQuery = groupsQuery.in('id', allowedGroupIds)
+  }
+  const { data: groups } = await groupsQuery
+
+  let collegesQuery = supabase.from('colleges').select('id, name, group_id')
+  if (allowedGroupIds) {
+    collegesQuery = collegesQuery.in('group_id', allowedGroupIds)
+  }
+  const { data: colleges } = await collegesQuery
 
   let userQuery = supabase.from('users').select('id, full_name').in('role', ['junior', 'senior', 'admin'])
   if (allowedGroupIds) {
