@@ -19,6 +19,7 @@ type Registration = {
   attendee_name: string
   college_name: string | null
   region_id: string | null
+  group_id: string | null
   phone: string | null
   attendee_email: string | null
   event: string | null
@@ -296,8 +297,8 @@ export default function MasterTable({ initialData, role, currentUserId }: { init
       <Modal isOpen={editModalOpen} onClose={() => setEditModalOpen(false)}>
         {selectedReg && (
           <RegistrationForm 
-            userId={selectedReg.registered_by} 
-            userGroupId={null}
+            userId={selectedReg.registered_by}
+            userGroupId={selectedReg.group_id}
             initialData={selectedReg as any} 
             onSuccess={() => {
               setEditModalOpen(false)
