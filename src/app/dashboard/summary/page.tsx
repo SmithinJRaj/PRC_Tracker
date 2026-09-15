@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import SummaryView from '@/components/SummaryView'
+import { getAllowedGroupIds } from '@/utils/getAllowedGroupIds'
 
 export default async function SummaryPage() {
   const supabase = await createClient()
@@ -16,26 +17,22 @@ export default async function SummaryPage() {
     .eq('id', user.id)
     .single()
 
+  if (!profile) {
+    redirect('/login')
+  }
+
   if (!['admin', 'senior'].includes(profile?.role || '')) {
     redirect('/dashboard')
   }
 
-  let allowedGroupIds: string[] | null = null
+  const allowedGroupIds = await getAllowedGroupIds(supabase, profile)
+
   let allowedTabs = ['overall', 'state', 'district']
 
   if (profile?.role === 'senior') {
-    const groupId = profile.group_id
     // @ts-ignore
     const groupType = profile.groups?.type
-    
-    if (groupType === 'state') {
-      allowedTabs = ['overall', 'district']
-      const { data: childGroups } = await supabase.from('groups').select('id').eq('parent_group_id', groupId)
-      allowedGroupIds = [groupId, ...(childGroups?.map(g => g.id) || [])]
-    } else {
-      allowedTabs = ['overall']
-      allowedGroupIds = [groupId]
-    }
+    allowedTabs = groupType === 'state' ? ['overall', 'district'] : ['overall']
   }
 
   // Fetch registrations

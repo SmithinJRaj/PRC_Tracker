@@ -28,9 +28,10 @@ type Props = {
   groups: Group[]
   presentUserIds: string[]
   todayDateString: string
+  isFilterLocked?: boolean
 }
 
-export default function AttendanceView({ juniors, groups, presentUserIds: initialPresentIds, todayDateString }: Props) {
+export default function AttendanceView({ juniors, groups, presentUserIds: initialPresentIds, todayDateString, isFilterLocked = false }: Props) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedGroupId, setSelectedGroupId] = useState<string>('all')
   const [presentIds, setPresentIds] = useState<Set<string>>(new Set(initialPresentIds))
@@ -192,19 +193,21 @@ export default function AttendanceView({ juniors, groups, presentUserIds: initia
       {/* Filters and Search */}
       <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
         <div className="flex flex-col md:flex-row gap-4 mb-4">
-          <Select value={selectedGroupId} onValueChange={(val) => setSelectedGroupId(val || 'all')}>
-            <SelectTrigger className="w-full md:w-[250px] h-12">
-              <SelectValue placeholder="Filter by Group">
-                {selectedGroupId === 'all' ? 'All Groups' : (groups.find(g => g.id === selectedGroupId)?.name || 'Filter by Group')}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Groups</SelectItem>
-              {groups.map(g => (
-                <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {!isFilterLocked && (
+            <Select value={selectedGroupId} onValueChange={(val) => setSelectedGroupId(val || 'all')}>
+              <SelectTrigger className="w-full md:w-[250px] h-12">
+                <SelectValue placeholder="Filter by Group">
+                  {selectedGroupId === 'all' ? 'All Groups' : (groups.find(g => g.id === selectedGroupId)?.name || 'Filter by Group')}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Groups</SelectItem>
+                {groups.map(g => (
+                  <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />

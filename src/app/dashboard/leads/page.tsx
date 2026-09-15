@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import TelecallingCRM from '@/components/TelecallingCRM'
+import { getAllowedGroupIds } from '@/utils/getAllowedGroupIds'
 
 export default async function LeadsPage() {
   const supabase = await createClient()
@@ -12,7 +13,7 @@ export default async function LeadsPage() {
 
   const { data: profile } = await supabase
     .from('users')
-    .select('role, group_id')
+    .select('role, group_id, groups:group_id (type)')
     .eq('id', user.id)
     .single()
 
@@ -20,10 +21,17 @@ export default async function LeadsPage() {
     redirect('/login')
   }
 
+  const allowedGroupIds = await getAllowedGroupIds(supabase, profile)
+
   // Fetch base data
   const { data: groups } = await supabase.from('groups').select('id, name')
   const { data: colleges } = await supabase.from('colleges').select('id, name, group_id')
-  const { data: users } = await supabase.from('users').select('id, full_name').in('role', ['junior', 'senior', 'admin'])
+
+  let userQuery = supabase.from('users').select('id, full_name').in('role', ['junior', 'senior', 'admin'])
+  if (allowedGroupIds) {
+    userQuery = userQuery.in('group_id', allowedGroupIds)
+  }
+  const { data: users } = await userQuery
 
   return (
     <div className="space-y-8">

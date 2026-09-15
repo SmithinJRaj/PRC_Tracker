@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import AttendanceView from '@/components/AttendanceView'
+import { getAllowedGroupIds } from '@/utils/getAllowedGroupIds'
 
 export default async function AttendancePage() {
   const supabase = await createClient()
@@ -20,22 +21,7 @@ export default async function AttendancePage() {
     redirect('/dashboard')
   }
 
-  let allowedGroupIds: string[] | null = null
-
-  if (profile?.role === 'senior') {
-    const groupId = profile.group_id
-    // @ts-ignore
-    const groupType = profile.groups?.type
-    
-    if (groupType === 'state') {
-      const { data: childGroups } = await supabase.from('groups').select('id').eq('parent_group_id', groupId)
-      allowedGroupIds = [groupId, ...(childGroups?.map(g => g.id) || [])]
-    } else if (groupId) {
-      allowedGroupIds = [groupId]
-    } else {
-      allowedGroupIds = []
-    }
-  }
+  const allowedGroupIds = await getAllowedGroupIds(supabase, profile)
 
   // Fetch juniors in allowed groups
   let userQuery = supabase
@@ -68,10 +54,16 @@ export default async function AttendancePage() {
   const presentUserIds = attendanceData?.map(a => a.user_id) || []
 
   // Fetch all groups to pass down to the view
-  const { data: groups } = await supabase
+  let groupsQuery = supabase
     .from('groups')
     .select('id, name, type')
     .order('name', { ascending: true })
+
+  if (allowedGroupIds) {
+    groupsQuery = groupsQuery.in('id', allowedGroupIds)
+  }
+
+  const { data: groups } = await groupsQuery
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -80,11 +72,12 @@ export default async function AttendancePage() {
         <p className="mt-2 text-gray-600">Mark your juniors present for {todayDateString}.</p>
       </div>
 
-      <AttendanceView 
-        juniors={juniors as any || []} 
+      <AttendanceView
+        juniors={juniors as any || []}
         groups={groups as any || []}
         presentUserIds={presentUserIds}
         todayDateString={todayDateString}
+        isFilterLocked={allowedGroupIds !== null && allowedGroupIds.length <= 1}
       />
     </div>
   )

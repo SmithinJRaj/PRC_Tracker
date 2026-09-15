@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import DirectoryView from '@/components/DirectoryView'
+import { getAllowedGroupIds } from '@/utils/getAllowedGroupIds'
 
 export default async function DirectoryPage() {
   const supabase = await createClient()
@@ -16,28 +17,9 @@ export default async function DirectoryPage() {
     .eq('id', user.id)
     .single()
 
-  let allowedGroupIds: string[] | null = null
-
-  if (profile?.role === 'senior') {
-    const groupId = profile.group_id
-    // @ts-ignore
-    const groupType = profile.groups?.type
-    
-    if (groupType === 'state') {
-      const { data: childGroups } = await supabase.from('groups').select('id').eq('parent_group_id', groupId)
-      allowedGroupIds = [groupId, ...(childGroups?.map(g => g.id) || [])]
-    } else if (groupId) {
-      allowedGroupIds = [groupId]
-    } else {
-      allowedGroupIds = []
-    }
-  } else if (profile?.role === 'junior') {
-    if (profile.group_id) {
-      allowedGroupIds = [profile.group_id]
-    } else {
-      allowedGroupIds = []
-    }
-  }
+  const allowedGroupIds = profile
+    ? await getAllowedGroupIds(supabase, profile)
+    : []
 
   // Fetch all groups
   const { data: allGroups } = await supabase

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import UserManagement from '@/components/UserManagement'
 import TeamAssignment from '@/components/TeamAssignment'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { getAllowedGroupIds } from '@/utils/getAllowedGroupIds'
 
 export default async function ManagementDashboard() {
   const supabase = await createClient()
@@ -14,7 +15,7 @@ export default async function ManagementDashboard() {
 
   const { data: profile } = await supabase
     .from('users')
-    .select('*')
+    .select('*, groups:group_id (type)')
     .eq('id', user.id)
     .single()
 
@@ -24,11 +25,19 @@ export default async function ManagementDashboard() {
 
   const isAdmin = profile?.role === 'admin'
 
+  const allowedGroupIds = await getAllowedGroupIds(supabase, profile)
+
   // Fetch all users
-  const { data: allUsers } = await supabase
+  let allUsersQuery = supabase
     .from('users')
     .select('*')
     .order('created_at', { ascending: true })
+
+  if (allowedGroupIds) {
+    allUsersQuery = allUsersQuery.in('group_id', allowedGroupIds)
+  }
+
+  const { data: allUsers } = await allUsersQuery
 
   // Fetch all groups
   const { data: allGroups } = await supabase
