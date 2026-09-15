@@ -202,6 +202,7 @@ export default function TelecallingCRM({
   const uncalledLeads = leads.filter(l => l.status === 'uncalled')
   const calledLeads = leads.filter(l => l.status === 'called' && !l.is_confirmed)
   const closedLeads = leads.filter(l => l.status === 'called' && l.is_confirmed)
+  const invalidLeads = leads.filter(l => l.status === 'invalid')
 
   return (
     <div className="space-y-8">
@@ -514,6 +515,55 @@ export default function TelecallingCRM({
                   </Table>
                 </div>
               </div>
+
+              {/* Invalid Box */}
+              {currentUser.role !== 'junior' && (
+                <div className="border rounded-lg overflow-hidden flex flex-col max-h-[600px]">
+                  <div className="bg-gray-50 p-3 border-b font-medium flex justify-between">
+                    <span>Invalid Leads</span>
+                    <span className="text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full text-sm">
+                      {invalidLeads.length}
+                    </span>
+                  </div>
+                  <div className="overflow-y-auto flex-1 p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>#</TableHead>
+                          <TableHead>Phone</TableHead>
+                          <TableHead>Remarks</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {invalidLeads.map((lead, idx) => (
+                          <TableRow key={lead.id}>
+                            <TableCell className="text-gray-500 text-xs">{idx + 1}</TableCell>
+                            <TableCell className="font-mono">{lead.phone_number}</TableCell>
+                            <TableCell className="text-xs text-gray-500">{lead.remarks || '—'}</TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => updateLead(lead.id, { status: 'uncalled' })}
+                              >
+                                Restore
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {invalidLeads.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center py-4 text-gray-500">
+                              No invalid leads.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-gray-500 text-center py-12 border-2 border-dashed rounded-lg">
