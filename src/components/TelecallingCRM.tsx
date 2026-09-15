@@ -143,7 +143,17 @@ export default function TelecallingCRM({
             setColleges([...colleges, { id: newCollege.id, name: newCollegeName, group_id: entryGroupId }])
           }
 
-          const payload = uniquePhones.map(phone => ({
+          const { data: existingLeads } = await supabase.from('leads').select('phone_number').eq('college_id', targetCollegeId)
+          const existingPhones = new Set((existingLeads || []).map(l => l.phone_number))
+          const newPhones = uniquePhones.filter(phone => !existingPhones.has(phone))
+
+          if (newPhones.length === 0) {
+            toast.error('All numbers in this file already exist for this college.')
+            setIsUploading(false)
+            return
+          }
+
+          const payload = newPhones.map(phone => ({
             college_id: targetCollegeId,
             phone_number: phone,
             status: 'uncalled'
@@ -155,7 +165,8 @@ export default function TelecallingCRM({
              throw insertError
           }
 
-          toast.success(`Successfully imported ${uniquePhones.length} leads.`)
+          const skippedCount = uniquePhones.length - newPhones.length
+          toast.success(`Imported ${newPhones.length} new lead${newPhones.length > 1 ? 's' : ''}.` + (skippedCount > 0 ? ` Skipped ${skippedCount} duplicate${skippedCount > 1 ? 's' : ''} already in this college.` : ''))
           setFile(null)
           setNewCollegeName('')
           
@@ -189,7 +200,8 @@ export default function TelecallingCRM({
   }
 
   const uncalledLeads = leads.filter(l => l.status === 'uncalled')
-  const calledLeads = leads.filter(l => l.status === 'called')
+  const calledLeads = leads.filter(l => l.status === 'called' && !l.is_confirmed)
+  const closedLeads = leads.filter(l => l.status === 'called' && l.is_confirmed)
 
   return (
     <div className="space-y-8">
@@ -441,6 +453,54 @@ export default function TelecallingCRM({
                               checked={lead.is_confirmed || false}
                               onChange={(e) => updateLead(lead.id, { is_confirmed: e.target.checked })}
                             />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              {/* Closed Box */}
+              <div className="border rounded-lg overflow-hidden flex flex-col max-h-[600px]">
+                <div className="bg-gray-50 p-3 border-b font-medium flex justify-between">
+                  <span>Closed Leads</span>
+                  <span className="text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full text-sm">
+                    {closedLeads.length}
+                  </span>
+                </div>
+                <div className="overflow-y-auto flex-1 p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12">#</TableHead>
+                        <TableHead>Phone</TableHead>
+                        <TableHead>Called By</TableHead>
+                        <TableHead>Remarks</TableHead>
+                        <TableHead className="w-24 text-center">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {closedLeads.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-gray-500 h-24">
+                            No closed leads
+                          </TableCell>
+                        </TableRow>
+                      ) : closedLeads.map((lead, idx) => (
+                        <TableRow key={lead.id}>
+                          <TableCell className="text-gray-500 text-xs">{idx + 1}</TableCell>
+                          <TableCell className="font-mono">{lead.phone_number}</TableCell>
+                          <TableCell className="text-xs">
+                            {lead.called_by ? users.find(u => u.id === lead.called_by)?.full_name : '-'}
+                          </TableCell>
+                          <TableCell className="text-xs">{lead.remarks || '-'}</TableCell>
+                          <TableCell className="text-center">
+                            {currentUser.role !== 'junior' && (
+                              <Button size="sm" variant="outline" onClick={() => updateLead(lead.id, { is_confirmed: false })}>
+                                Unverify
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
