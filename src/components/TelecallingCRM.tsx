@@ -420,23 +420,29 @@ export default function TelecallingCRM({
                           <TableCell className="text-gray-500 text-xs">{idx + 1}</TableCell>
                           <TableCell className="font-mono">{lead.phone_number}</TableCell>
                           <TableCell>
-                            <Select 
-                              value={lead.called_by || ''} 
-                              onValueChange={(val) => updateLead(lead.id, { called_by: val || null })}
-                            >
-                              <SelectTrigger className="h-8 text-xs border-0 bg-transparent p-0 w-24">
-                                <SelectValue placeholder="Assign">
-                                  <span className="truncate block max-w-[80px]">
-                                    {lead.called_by ? users.find(u => u.id === lead.called_by)?.full_name : 'Assign'}
-                                  </span>
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                {users.map(u => (
-                                  <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            {currentUser.role === 'junior' ? (
+                              <span className="truncate block max-w-[80px] text-xs">
+                                {lead.called_by ? users.find(u => u.id === lead.called_by)?.full_name : 'Assign'}
+                              </span>
+                            ) : (
+                              <Select
+                                value={lead.called_by || ''}
+                                onValueChange={(val) => updateLead(lead.id, { called_by: val || null })}
+                              >
+                                <SelectTrigger className="h-8 text-xs border-0 bg-transparent p-0 w-24">
+                                  <SelectValue placeholder="Assign">
+                                    <span className="truncate block max-w-[80px]">
+                                      {lead.called_by ? users.find(u => u.id === lead.called_by)?.full_name : 'Assign'}
+                                    </span>
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {users.map(u => (
+                                    <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
                           </TableCell>
                           <TableCell>
                             <Input 
