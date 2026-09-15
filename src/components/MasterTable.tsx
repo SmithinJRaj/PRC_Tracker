@@ -208,10 +208,10 @@ export default function MasterTable({ initialData, role, currentUserId }: { init
                         Unverify
                       </Button>
                     )}
-                    {isAdmin && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                    {canManage && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="h-8 w-8 p-0 text-gray-500 hover:text-blue-600"
                         onClick={() => openAdminEditModal(reg)}
                       >

@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import MasterTable from '@/components/MasterTable'
+import { getAllowedGroupIds } from '@/utils/getAllowedGroupIds'
 
 export default async function MasterDashboard() {
   const supabase = await createClient()
@@ -12,13 +13,15 @@ export default async function MasterDashboard() {
 
   const { data: profile } = await supabase
     .from('users')
-    .select('role, full_name, group_id')
+    .select('role, full_name, group_id, groups:group_id (type)')
     .eq('id', user.id)
     .single()
 
   if (profile?.role !== 'admin' && profile?.role !== 'senior') {
     redirect('/dashboard/register')
   }
+
+  const allowedGroupIds = await getAllowedGroupIds(supabase, profile)
 
   // Build query
   let query = supabase
@@ -31,17 +34,8 @@ export default async function MasterDashboard() {
     .eq('lead_status', 'registered')
     .order('created_at', { ascending: false })
 
-  if (profile?.role === 'senior' && profile.group_id) {
-    query = supabase
-      .from('registrations')
-      .select(`
-        *,
-        users:registered_by (full_name, group_id),
-        groups:group_id (name)
-      `)
-      .eq('lead_status', 'registered')
-      .eq('group_id', profile.group_id)
-      .order('created_at', { ascending: false })
+  if (allowedGroupIds) {
+    query = query.in('group_id', allowedGroupIds)
   }
 
   const { data: registrations } = await query
