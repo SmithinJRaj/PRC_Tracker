@@ -46,6 +46,7 @@ export default function TeamAssignment({
   const [assignSelections, setAssignSelections] = useState<Record<string, string>>({})
   const [searchJunior, setSearchJunior] = useState('')
   const [searchTeam, setSearchTeam] = useState('')
+  const [groupFilter, setGroupFilter] = useState('all')
   const supabase = createClient()
   const router = useRouter()
 
@@ -68,9 +69,29 @@ export default function TeamAssignment({
   }
 
   if (currentRole === 'admin') {
+    const filteredUsers = users.filter(u => {
+      if (groupFilter === 'all') return true
+      if (groupFilter === 'unassigned') return u.group_id === null
+      return u.group_id === groupFilter
+    })
+
     return (
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mt-8">
         <h2 className="text-xl font-semibold mb-4 text-gray-900">Assign Team Members to Groups</h2>
+        <div className="mb-4 flex justify-end">
+          <Select value={groupFilter} onValueChange={(val) => setGroupFilter(val || 'all')}>
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder="Filter by Group" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Groups</SelectItem>
+              <SelectItem value="unassigned">Unassigned</SelectItem>
+              {groups.map(g => (
+                <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
@@ -81,7 +102,7 @@ export default function TeamAssignment({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((u) => (
+              {filteredUsers.map((u) => (
                 <TableRow key={u.id}>
                   <TableCell className="font-medium">
                     {u.full_name} <span className="text-xs text-gray-500 ml-2 capitalize">({u.role})</span>
@@ -105,7 +126,7 @@ export default function TeamAssignment({
                   </TableCell>
                 </TableRow>
               ))}
-              {users.length === 0 && (
+              {filteredUsers.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={3} className="text-center py-4 text-gray-500">
                     No users found.
