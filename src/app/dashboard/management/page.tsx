@@ -35,8 +35,8 @@ export default async function ManagementDashboard() {
 
   async function computeSeniorGroupIds(): Promise<string[]> {
     if (!seniorGroupId) return []
-    const { data: groupInfo } = await supabase.from('groups').select('type').eq('id', seniorGroupId).single()
-    if (groupInfo?.type === 'state') {
+    const groupType = Array.isArray(profile.groups) ? profile.groups[0]?.type : profile.groups?.type
+    if (groupType === 'state') {
       const { data: childGroups } = await supabase.from('groups').select('id').eq('parent_group_id', seniorGroupId)
       return [seniorGroupId, ...(childGroups?.map(g => g.id) || [])]
     }
