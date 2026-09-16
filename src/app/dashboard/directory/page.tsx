@@ -26,9 +26,10 @@ export default async function DirectoryPage() {
   let userQuery = supabase
     .from('users')
     .select(`
-      id, 
+      id,
       full_name,
       email,
+      phone,
       role,
       group_id,
       roll_number,

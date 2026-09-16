@@ -13,6 +13,7 @@ type User = {
   id: string
   full_name: string
   email: string
+  phone?: string | null
   role: string
   group_id: string | null
   roll_number?: string | null
@@ -125,6 +126,7 @@ export default function DirectoryView({ users, groups, currentRole, teamRegistra
                   <TableHead>Full Name</TableHead>
                   <TableHead>Roll Number</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
                   <TableHead>Group</TableHead>
                 </TableRow>
               </TableHeader>
@@ -134,12 +136,13 @@ export default function DirectoryView({ users, groups, currentRole, teamRegistra
                     <TableCell className="font-semibold text-gray-900">{u.full_name}</TableCell>
                     <TableCell className="font-mono text-gray-500">{u.roll_number || '-'}</TableCell>
                     <TableCell>{u.email}</TableCell>
+                    <TableCell>{u.phone || '-'}</TableCell>
                     <TableCell>{u.groups?.name || 'Unassigned'}</TableCell>
                   </TableRow>
                 ))}
                 {seniors.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6 text-gray-500">
+                    <TableCell colSpan={5} className="text-center py-6 text-gray-500">
                       No seniors found.
                     </TableCell>
                   </TableRow>
@@ -164,13 +167,14 @@ export default function DirectoryView({ users, groups, currentRole, teamRegistra
                   <TableHead>Full Name</TableHead>
                   <TableHead>Roll Number</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
                   <TableHead>Group</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {juniors.map((u) => (
-                  <TableRow 
-                    key={u.id} 
+                  <TableRow
+                    key={u.id}
                     className={currentRole !== 'junior' ? "cursor-pointer hover:bg-gray-50 transition-colors" : ""}
                     onClick={() => {
                       if (currentRole !== 'junior') setSelectedJuniorId(u.id)
@@ -184,12 +188,13 @@ export default function DirectoryView({ users, groups, currentRole, teamRegistra
                     </TableCell>
                     <TableCell className="font-mono text-gray-500">{u.roll_number || '-'}</TableCell>
                     <TableCell>{u.email}</TableCell>
+                    <TableCell>{u.phone || '-'}</TableCell>
                     <TableCell>{u.groups?.name || 'Unassigned'}</TableCell>
                   </TableRow>
                 ))}
                 {juniors.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6 text-gray-500">
+                    <TableCell colSpan={5} className="text-center py-6 text-gray-500">
                       No juniors found.
                     </TableCell>
                   </TableRow>
