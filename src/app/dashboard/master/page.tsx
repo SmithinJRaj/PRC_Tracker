@@ -1,23 +1,16 @@
-import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import MasterTable from '@/components/MasterTable'
 import { getAllowedGroupIds } from '@/utils/getAllowedGroupIds'
+import { getCurrentProfile } from '@/utils/getCurrentProfile'
 
 export default async function MasterDashboard() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { supabase, user, profile } = await getCurrentProfile()
 
-  if (!user) {
+  if (!user || !profile) {
     redirect('/login')
   }
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('role, full_name, group_id, groups:group_id (type)')
-    .eq('id', user.id)
-    .single()
-
-  if (profile?.role !== 'admin' && profile?.role !== 'senior') {
+  if (profile.role !== 'admin' && profile.role !== 'senior') {
     redirect('/dashboard/register')
   }
 
