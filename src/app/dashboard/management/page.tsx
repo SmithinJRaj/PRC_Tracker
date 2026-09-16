@@ -30,47 +30,44 @@ export default async function ManagementDashboard() {
     allUsersQuery = allUsersQuery.in('group_id', allowedGroupIds)
   }
 
-  const { data: allUsers } = await allUsersQuery
-
-  // Fetch all groups
-  const { data: allGroups } = await supabase
-    .from('groups')
-    .select('*')
-    .order('name', { ascending: true })
-
-  const members = allUsers || []
-  
   // Find which group the current senior belongs to
   const seniorGroupId = profile.group_id
 
-  let seniorGroupIds: string[] = []
-  if (seniorGroupId) {
+  async function computeSeniorGroupIds(): Promise<string[]> {
+    if (!seniorGroupId) return []
     const { data: groupInfo } = await supabase.from('groups').select('type').eq('id', seniorGroupId).single()
     if (groupInfo?.type === 'state') {
       const { data: childGroups } = await supabase.from('groups').select('id').eq('parent_group_id', seniorGroupId)
-      seniorGroupIds = [seniorGroupId, ...(childGroups?.map(g => g.id) || [])]
-    } else {
-      seniorGroupIds = [seniorGroupId]
+      return [seniorGroupId, ...(childGroups?.map(g => g.id) || [])]
     }
+    return [seniorGroupId]
   }
 
-  let teamRegistrations: any[] = []
-  if (seniorGroupIds.length > 0) {
-    const { data: regs } = await supabase
-      .from('registrations')
-      .select('id, attendee_name, college_name, registered_by, reg_fee, created_at')
-      .in('group_id', seniorGroupIds)
-    teamRegistrations = regs || []
-  }
+  const [{ data: allUsers }, { data: allGroups }, seniorGroupIds] = await Promise.all([
+    allUsersQuery,
+    supabase.from('groups').select('*').order('name', { ascending: true }),
+    computeSeniorGroupIds(),
+  ])
 
-  let teamAttendance: any[] = []
-  if (seniorGroupIds.length > 0) {
-    const juniorIds = (allUsers || []).filter(u => u.role === 'junior' && u.group_id && seniorGroupIds.includes(u.group_id)).map(u => u.id)
-    if (juniorIds.length > 0) {
-      const { data: att } = await supabase.from('attendance').select('user_id, date').in('user_id', juniorIds)
-      teamAttendance = att || []
-    }
-  }
+  const members = allUsers || []
+
+  const [teamRegistrationsResult, teamAttendanceResult] = await Promise.all([
+    seniorGroupIds.length > 0
+      ? supabase
+          .from('registrations')
+          .select('id, attendee_name, college_name, registered_by, reg_fee, created_at')
+          .in('group_id', seniorGroupIds)
+      : Promise.resolve({ data: [] }),
+    (() => {
+      if (seniorGroupIds.length === 0) return Promise.resolve({ data: [] })
+      const juniorIds = (allUsers || []).filter(u => u.role === 'junior' && u.group_id && seniorGroupIds.includes(u.group_id)).map(u => u.id)
+      if (juniorIds.length === 0) return Promise.resolve({ data: [] })
+      return supabase.from('attendance').select('user_id, date').in('user_id', juniorIds)
+    })(),
+  ])
+
+  const teamRegistrations = teamRegistrationsResult.data || []
+  const teamAttendance = teamAttendanceResult.data || []
 
   return (
     <div className="space-y-8">
