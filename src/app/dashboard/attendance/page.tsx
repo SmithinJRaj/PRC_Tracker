@@ -17,10 +17,12 @@ export default async function AttendancePage() {
   const allowedGroupIds = await getAllowedGroupIds(supabase, profile)
 
   // Fetch juniors in allowed groups
+  const todayDateString = new Date().toISOString().split('T')[0]
+
   let userQuery = supabase
     .from('users')
     .select(`
-      id, 
+      id,
       full_name,
       roll_number,
       group_id
@@ -32,19 +34,11 @@ export default async function AttendancePage() {
     userQuery = userQuery.in('group_id', allowedGroupIds)
   }
 
-  const { data: juniors } = await userQuery
-
-  const todayDateString = new Date().toISOString().split('T')[0]
-
   // Fetch today's attendance for those juniors
   let attendanceQuery = supabase
     .from('attendance')
     .select('user_id')
     .eq('date', todayDateString)
-
-  const { data: attendanceData } = await attendanceQuery
-  
-  const presentUserIds = attendanceData?.map(a => a.user_id) || []
 
   // Fetch all groups to pass down to the view
   let groupsQuery = supabase
@@ -56,7 +50,13 @@ export default async function AttendancePage() {
     groupsQuery = groupsQuery.in('id', allowedGroupIds)
   }
 
-  const { data: groups } = await groupsQuery
+  const [{ data: juniors }, { data: attendanceData }, { data: groups }] = await Promise.all([
+    userQuery,
+    attendanceQuery,
+    groupsQuery,
+  ])
+
+  const presentUserIds = attendanceData?.map(a => a.user_id) || []
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
