@@ -17,19 +17,22 @@ export default async function LeadsPage() {
   if (allowedGroupIds) {
     groupsQuery = groupsQuery.in('id', allowedGroupIds)
   }
-  const { data: groups } = await groupsQuery
 
   let collegesQuery = supabase.from('colleges').select('id, name, group_id')
   if (allowedGroupIds) {
     collegesQuery = collegesQuery.in('group_id', allowedGroupIds)
   }
-  const { data: colleges } = await collegesQuery
 
   let userQuery = supabase.from('users').select('id, full_name').in('role', ['junior', 'senior', 'admin'])
   if (allowedGroupIds) {
     userQuery = userQuery.in('group_id', allowedGroupIds)
   }
-  const { data: users } = await userQuery
+
+  const [{ data: groups }, { data: colleges }, { data: users }] = await Promise.all([
+    groupsQuery,
+    collegesQuery,
+    userQuery,
+  ])
 
   return (
     <div className="space-y-8">
