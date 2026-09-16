@@ -1,23 +1,16 @@
-import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import AttendanceView from '@/components/AttendanceView'
 import { getAllowedGroupIds } from '@/utils/getAllowedGroupIds'
+import { getCurrentProfile } from '@/utils/getCurrentProfile'
 
 export default async function AttendancePage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { supabase, user, profile } = await getCurrentProfile()
 
-  if (!user) {
+  if (!user || !profile) {
     redirect('/login')
   }
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('role, group_id, groups:group_id (name, type)')
-    .eq('id', user.id)
-    .single()
-
-  if (profile?.role !== 'admin' && profile?.role !== 'senior') {
+  if (profile.role !== 'admin' && profile.role !== 'senior') {
     redirect('/dashboard')
   }
 
