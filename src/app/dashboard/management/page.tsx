@@ -1,25 +1,18 @@
-import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import UserManagement from '@/components/UserManagement'
 import TeamAssignment from '@/components/TeamAssignment'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getAllowedGroupIds } from '@/utils/getAllowedGroupIds'
+import { getCurrentProfile } from '@/utils/getCurrentProfile'
 
 export default async function ManagementDashboard() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { supabase, user, profile } = await getCurrentProfile()
 
-  if (!user) {
+  if (!user || !profile) {
     redirect('/login')
   }
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('*, groups:group_id (type)')
-    .eq('id', user.id)
-    .single()
-
-  if (profile?.role !== 'admin' && profile?.role !== 'senior') {
+  if (profile.role !== 'admin' && profile.role !== 'senior') {
     redirect('/dashboard/register')
   }
 
