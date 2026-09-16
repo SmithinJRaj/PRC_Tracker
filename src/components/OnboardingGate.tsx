@@ -31,15 +31,17 @@ export default function OnboardingGate({ userId, groups, role }: { userId: strin
       return
     }
 
-    if (role === 'junior' && (!phone || phone.length < 10)) {
-      toast.error('Please enter a valid phone number.')
+    const cleanedPhone = phone.replace(/[\s\-()]/g, '')
+    const phoneRegex = /^\+?[1-9]\d{6,14}$/
+    if (role === 'junior' && (!phone || !phoneRegex.test(cleanedPhone))) {
+      toast.error('Please enter a valid phone number, including country code if outside India (e.g. +14155552671).')
       return
     }
 
     setLoading(true)
     const payload: any = { group_id: selectedGroup }
     if (role === 'junior') {
-      payload.phone = phone
+      payload.phone = cleanedPhone
     }
 
     const { data, error } = await supabase
