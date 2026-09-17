@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Check, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import AlertDialog from '@/components/AlertDialog'
 
 interface Group {
   id: string
@@ -70,6 +71,7 @@ export default function TelecallingCRM({
   const [trackCollegeId, setTrackCollegeId] = useState('')
   const [leads, setLeads] = useState<Lead[]>([])
   const [isLoadingLeads, setIsLoadingLeads] = useState(false)
+  const [deleteCollegeAlertOpen, setDeleteCollegeAlertOpen] = useState(false)
 
   // Fetch leads when trackCollegeId changes
   useEffect(() => {
@@ -199,6 +201,22 @@ export default function TelecallingCRM({
     }
   }
 
+  const handleDeleteCollege = async () => {
+    const college = colleges.find(c => c.id === trackCollegeId)
+    if (!college) return
+
+    const { error } = await supabase.from('colleges').delete().eq('id', college.id)
+
+    if (error) {
+      toast.error('Failed to delete college', { description: error.message })
+    } else {
+      toast.success(`Deleted ${college.name} and its leads`)
+      setColleges(colleges.filter(c => c.id !== college.id))
+      setTrackCollegeId('')
+      setLeads([])
+    }
+  }
+
   const uncalledLeads = leads.filter(l => l.status === 'uncalled')
   const calledLeads = leads.filter(l => l.status === 'called' && !l.is_confirmed)
   const closedLeads = leads.filter(l => l.status === 'called' && l.is_confirmed)
@@ -291,35 +309,48 @@ export default function TelecallingCRM({
           <CardDescription>Manage leads for a selected college.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-6 max-w-md flex flex-col md:flex-row gap-4">
-            <Select value={trackGroupId} onValueChange={(val) => {
-              setTrackGroupId(val || '');
-              setTrackCollegeId('');
-            }} disabled={currentUser.role !== 'admin' && displayGroups.length <= 1}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select Group">
-                   {trackGroupId ? displayGroups.find(g => g.id === trackGroupId)?.name : "Select Group"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {displayGroups.map(g => (
-                  <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="mb-6 max-w-md flex flex-col md:flex-row gap-4 items-start">
+            <div className="flex flex-col md:flex-row gap-4 flex-1">
+              <Select value={trackGroupId} onValueChange={(val) => {
+                setTrackGroupId(val || '');
+                setTrackCollegeId('');
+              }} disabled={currentUser.role !== 'admin' && displayGroups.length <= 1}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Group">
+                     {trackGroupId ? displayGroups.find(g => g.id === trackGroupId)?.name : "Select Group"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {displayGroups.map(g => (
+                    <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            <Select value={trackCollegeId} onValueChange={(val) => setTrackCollegeId(val || '')} disabled={!trackGroupId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select College to track">
-                   {trackCollegeId ? colleges.find(c => c.id === trackCollegeId)?.name : "Select College"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {colleges.filter(c => c.group_id === trackGroupId).map(c => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Select value={trackCollegeId} onValueChange={(val) => setTrackCollegeId(val || '')} disabled={!trackGroupId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select College to track">
+                     {trackCollegeId ? colleges.find(c => c.id === trackCollegeId)?.name : "Select College"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {colleges.filter(c => c.group_id === trackGroupId).map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {currentUser.role === 'admin' && trackCollegeId && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                onClick={() => setDeleteCollegeAlertOpen(true)}
+              >
+                Delete College
+              </Button>
+            )}
           </div>
 
           {isLoadingLeads ? (
@@ -572,6 +603,16 @@ export default function TelecallingCRM({
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog
+        isOpen={deleteCollegeAlertOpen}
+        onClose={() => setDeleteCollegeAlertOpen(false)}
+        onConfirm={handleDeleteCollege}
+        title="Delete College"
+        description={`Are you sure you want to delete ${colleges.find(c => c.id === trackCollegeId)?.name || 'this college'}? This will also permanently delete all ${leads.length} lead${leads.length === 1 ? '' : 's'} associated with it. This cannot be undone.`}
+        confirmText="Delete College & Leads"
+        cancelText="Cancel"
+      />
     </div>
   )
 }
