@@ -17,8 +17,10 @@ export async function getAllowedGroupIds(
 ): Promise<string[] | null> {
   if (profile.role === 'admin') return null // null = unrestricted
 
-  if (profile.role === 'senior') {
+  if (profile.role === 'senior' || profile.role === 'junior') {
     const groupId = profile.group_id
+    if (!groupId) return []
+
     const groupType = getGroupType(profile.groups)
 
     if (groupType === 'state') {
@@ -26,15 +28,10 @@ export async function getAllowedGroupIds(
         .from('groups')
         .select('id')
         .eq('parent_group_id', groupId)
-      return [groupId as string, ...(childGroups?.map(g => g.id) || [])]
-    } else if (groupId) {
-      return [groupId]
+      return [groupId, ...(childGroups?.map(g => g.id) || [])]
     }
-    return []
-  }
 
-  if (profile.role === 'junior') {
-    return profile.group_id ? [profile.group_id] : []
+    return [groupId]
   }
 
   return []

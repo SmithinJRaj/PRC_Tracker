@@ -12,6 +12,7 @@ type Group = {
   id: string
   name: string
   type: string
+  parent_group_id: string | null
 }
 
 export default function OnboardingGate({ userId, groups, role }: { userId: string, groups: Group[], role: string }) {
@@ -21,9 +22,20 @@ export default function OnboardingGate({ userId, groups, role }: { userId: strin
   const supabase = createClient()
   const router = useRouter()
 
-  const availableGroups = role === 'junior' 
-    ? groups.filter(g => g.type === 'district')
-    : groups // Seniors can select states and districts
+  function isSelectable(g: Group, allGroups: Group[]): boolean {
+    if (!g.parent_group_id) return true // top-level states
+    const parent = allGroups.find(p => p.id === g.parent_group_id)
+    if (!parent) return true
+    // Hide a group if its parent is itself nested under something else
+    // (i.e. this is one of the six real districts now sitting under a merge group)
+    return !parent.parent_group_id
+  }
+
+  const selectableGroups = groups.filter(g => isSelectable(g, groups))
+
+  const availableGroups = role === 'junior'
+    ? selectableGroups.filter(g => g.type === 'district' || (g.type === 'state' && g.parent_group_id))
+    : selectableGroups // Seniors can select top-level states, merge-groups, and plain districts
 
   const handleSubmit = async () => {
     if (!selectedGroup) {

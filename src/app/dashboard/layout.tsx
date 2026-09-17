@@ -43,7 +43,7 @@ export default async function DashboardLayout({
   if (['junior', 'senior'].includes(profile?.role) && !profile?.group_id) {
     const { data: allGroups } = await supabase
       .from('groups')
-      .select('id, name, type')
+      .select('id, name, type, parent_group_id')
       .order('name', { ascending: true })
 
     return <OnboardingGate userId={user.id} groups={allGroups || []} role={profile.role} />
