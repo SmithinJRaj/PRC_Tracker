@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Check, X } from 'lucide-react'
+import { Check, X, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import AlertDialog from '@/components/AlertDialog'
 
@@ -72,6 +72,8 @@ export default function TelecallingCRM({
   const [leads, setLeads] = useState<Lead[]>([])
   const [isLoadingLeads, setIsLoadingLeads] = useState(false)
   const [deleteCollegeAlertOpen, setDeleteCollegeAlertOpen] = useState(false)
+  const [deleteLeadAlertOpen, setDeleteLeadAlertOpen] = useState(false)
+  const [selectedLeadForDelete, setSelectedLeadForDelete] = useState<Lead | null>(null)
 
   // Fetch leads when trackCollegeId changes
   useEffect(() => {
@@ -214,6 +216,22 @@ export default function TelecallingCRM({
       setColleges(colleges.filter(c => c.id !== college.id))
       setTrackCollegeId('')
       setLeads([])
+    }
+  }
+
+  const openDeleteLeadAlert = (lead: Lead) => {
+    setSelectedLeadForDelete(lead)
+    setDeleteLeadAlertOpen(true)
+  }
+
+  const handleDeleteLead = async () => {
+    if (!selectedLeadForDelete) return
+    const { error } = await supabase.from('leads').delete().eq('id', selectedLeadForDelete.id)
+    if (error) {
+      toast.error('Failed to delete lead', { description: error.message })
+    } else {
+      toast.success('Lead deleted')
+      setLeads(leads.filter(l => l.id !== selectedLeadForDelete.id))
     }
   }
 
@@ -413,6 +431,16 @@ export default function TelecallingCRM({
                                 <X className="h-4 w-4" />
                               </Button>
                             )}
+                            {currentUser.role === 'admin' && (
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                                onClick={() => openDeleteLeadAlert(lead)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -438,12 +466,13 @@ export default function TelecallingCRM({
                         <TableHead>Called By</TableHead>
                         <TableHead>Remarks</TableHead>
                         <TableHead className="w-20 text-center">Done</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {calledLeads.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center text-gray-500 h-24">
+                          <TableCell colSpan={6} className="text-center text-gray-500 h-24">
                             No called leads
                           </TableCell>
                         </TableRow>
@@ -485,12 +514,24 @@ export default function TelecallingCRM({
                             />
                           </TableCell>
                           <TableCell className="text-center">
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                               checked={lead.is_confirmed || false}
                               onChange={(e) => updateLead(lead.id, { is_confirmed: e.target.checked })}
                             />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {currentUser.role === 'admin' && (
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                                onClick={() => openDeleteLeadAlert(lead)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -539,6 +580,16 @@ export default function TelecallingCRM({
                                 Unverify
                               </Button>
                             )}
+                            {currentUser.role === 'admin' && (
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50 ml-2"
+                                onClick={() => openDeleteLeadAlert(lead)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -580,6 +631,16 @@ export default function TelecallingCRM({
                               >
                                 Restore
                               </Button>
+                              {currentUser.role === 'admin' && (
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50 ml-2"
+                                  onClick={() => openDeleteLeadAlert(lead)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -611,6 +672,16 @@ export default function TelecallingCRM({
         title="Delete College"
         description={`Are you sure you want to delete ${colleges.find(c => c.id === trackCollegeId)?.name || 'this college'}? This will also permanently delete all ${leads.length} lead${leads.length === 1 ? '' : 's'} associated with it. This cannot be undone.`}
         confirmText="Delete College & Leads"
+        cancelText="Cancel"
+      />
+
+      <AlertDialog
+        isOpen={deleteLeadAlertOpen}
+        onClose={() => setDeleteLeadAlertOpen(false)}
+        onConfirm={handleDeleteLead}
+        title="Delete Lead"
+        description={`Are you sure you want to permanently delete the lead ${selectedLeadForDelete?.phone_number || ''}? This cannot be undone.`}
+        confirmText="Delete"
         cancelText="Cancel"
       />
     </div>
