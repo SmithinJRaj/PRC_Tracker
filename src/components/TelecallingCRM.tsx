@@ -74,6 +74,8 @@ export default function TelecallingCRM({
   const [deleteCollegeAlertOpen, setDeleteCollegeAlertOpen] = useState(false)
   const [deleteLeadAlertOpen, setDeleteLeadAlertOpen] = useState(false)
   const [selectedLeadForDelete, setSelectedLeadForDelete] = useState<Lead | null>(null)
+  const [deleteAllAlertOpen, setDeleteAllAlertOpen] = useState(false)
+  const [deleteAllTarget, setDeleteAllTarget] = useState<{ label: string; ids: string[] } | null>(null)
 
   // Fetch leads when trackCollegeId changes
   useEffect(() => {
@@ -235,6 +237,23 @@ export default function TelecallingCRM({
     }
   }
 
+  const openDeleteAllAlert = (label: string, leadsToDelete: Lead[]) => {
+    if (leadsToDelete.length === 0) return
+    setDeleteAllTarget({ label, ids: leadsToDelete.map(l => l.id) })
+    setDeleteAllAlertOpen(true)
+  }
+
+  const handleDeleteAll = async () => {
+    if (!deleteAllTarget) return
+    const { error } = await supabase.from('leads').delete().in('id', deleteAllTarget.ids)
+    if (error) {
+      toast.error('Failed to delete leads', { description: error.message })
+    } else {
+      toast.success(`Deleted ${deleteAllTarget.ids.length} lead${deleteAllTarget.ids.length === 1 ? '' : 's'}`)
+      setLeads(leads.filter(l => !deleteAllTarget.ids.includes(l.id)))
+    }
+  }
+
   const uncalledLeads = leads.filter(l => l.status === 'uncalled')
   const calledLeads = leads.filter(l => l.status === 'called' && !l.is_confirmed)
   const closedLeads = leads.filter(l => l.status === 'called' && l.is_confirmed)
@@ -377,11 +396,23 @@ export default function TelecallingCRM({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Uncalled Box */}
               <div className="border rounded-lg overflow-hidden flex flex-col max-h-[600px]">
-                <div className="bg-gray-50 p-3 border-b font-medium flex justify-between">
+                <div className="bg-gray-50 p-3 border-b font-medium flex items-center justify-between gap-2">
                   <span>Uncalled Leads</span>
-                  <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full text-sm">
-                    {uncalledLeads.length}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full text-sm">
+                      {uncalledLeads.length}
+                    </span>
+                    {currentUser.role === 'admin' && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => openDeleteAllAlert('Uncalled Leads', uncalledLeads)}
+                      >
+                        Delete All
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <div className="overflow-y-auto flex-1 p-0">
                   <Table>
@@ -451,11 +482,23 @@ export default function TelecallingCRM({
 
               {/* Called Box */}
               <div className="border rounded-lg overflow-hidden flex flex-col max-h-[600px]">
-                <div className="bg-gray-50 p-3 border-b font-medium flex justify-between">
+                <div className="bg-gray-50 p-3 border-b font-medium flex items-center justify-between gap-2">
                   <span>Called Leads</span>
-                  <span className="text-green-600 bg-green-50 px-2 py-0.5 rounded-full text-sm">
-                    {calledLeads.length}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-600 bg-green-50 px-2 py-0.5 rounded-full text-sm">
+                      {calledLeads.length}
+                    </span>
+                    {currentUser.role === 'admin' && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => openDeleteAllAlert('Called Leads', calledLeads)}
+                      >
+                        Delete All
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <div className="overflow-y-auto flex-1 p-0">
                   <Table>
@@ -542,11 +585,23 @@ export default function TelecallingCRM({
 
               {/* Closed Box */}
               <div className="border rounded-lg overflow-hidden flex flex-col max-h-[600px]">
-                <div className="bg-gray-50 p-3 border-b font-medium flex justify-between">
+                <div className="bg-gray-50 p-3 border-b font-medium flex items-center justify-between gap-2">
                   <span>Closed Leads</span>
-                  <span className="text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full text-sm">
-                    {closedLeads.length}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full text-sm">
+                      {closedLeads.length}
+                    </span>
+                    {currentUser.role === 'admin' && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => openDeleteAllAlert('Closed Leads', closedLeads)}
+                      >
+                        Delete All
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <div className="overflow-y-auto flex-1 p-0">
                   <Table>
@@ -601,11 +656,23 @@ export default function TelecallingCRM({
               {/* Invalid Box */}
               {currentUser.role !== 'junior' && (
                 <div className="border rounded-lg overflow-hidden flex flex-col max-h-[600px]">
-                  <div className="bg-gray-50 p-3 border-b font-medium flex justify-between">
+                  <div className="bg-gray-50 p-3 border-b font-medium flex items-center justify-between gap-2">
                     <span>Invalid Leads</span>
-                    <span className="text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full text-sm">
-                      {invalidLeads.length}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full text-sm">
+                        {invalidLeads.length}
+                      </span>
+                      {currentUser.role === 'admin' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => openDeleteAllAlert('Invalid Leads', invalidLeads)}
+                        >
+                          Delete All
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <div className="overflow-y-auto flex-1 p-0">
                     <Table>
@@ -682,6 +749,16 @@ export default function TelecallingCRM({
         title="Delete Lead"
         description={`Are you sure you want to permanently delete the lead ${selectedLeadForDelete?.phone_number || ''}? This cannot be undone.`}
         confirmText="Delete"
+        cancelText="Cancel"
+      />
+
+      <AlertDialog
+        isOpen={deleteAllAlertOpen}
+        onClose={() => setDeleteAllAlertOpen(false)}
+        onConfirm={handleDeleteAll}
+        title={`Delete All ${deleteAllTarget?.label || ''}`}
+        description={`Are you sure you want to permanently delete all ${deleteAllTarget?.ids.length || 0} lead${(deleteAllTarget?.ids.length || 0) === 1 ? '' : 's'} in ${deleteAllTarget?.label || 'this box'}? This cannot be undone.`}
+        confirmText="Delete All"
         cancelText="Cancel"
       />
     </div>
